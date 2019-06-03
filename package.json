@@ -1,0 +1,32 @@
+{
+  "name": "nickel-search",
+  "version": "0.1.0",
+  "description": "Nickel Search Server is a basic serverless prefix search indexer",
+  "main": "dist/src/index.js",
+  "bin": {
+    "nickel": "dist/src/app.js"
+  },
+  "scripts": {
+    "test": "npx jest --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/lazycodrs/nickel-bloodhound.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "homepage": "https://bitbucket.org/lazycodrs/nickel-bloodhound#readme",
+  "devDependencies": {
+    "@types/dir-walker-gen": "^1.0.0",
+    "@types/jest": "^24.0.12",
+    "@types/node": "^11.13.9",
+    "jest": "^24.8.0",
+    "ts-jest": "^24.0.2",
+    "tslint": "^5.16.0",
+    "typescript": "^3.4.5"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.452.0",
+    "dir-walker-gen": "^1.0.1"
+  }
+}

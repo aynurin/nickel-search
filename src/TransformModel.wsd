@@ -1,0 +1,51 @@
+@startuml
+'!include Archimate.puml
+!includeurl https://raw.githubusercontent.com/ebbypeter/Archimate-PlantUML/master/Archimate.puml
+
+sprite $bProcess jar:archimate/business-process
+sprite $aService jar:archimate/application-service
+sprite $aComponent jar:archimate/application-component
+sprite $aDataObject jar:archimate/application-data-object
+
+archimate #Implementation "Index" as Index <<application-data-object>>
+
+Rel_Association_Down(Index, IndexEntry, "Index contains many entries") 
+
+Grouping(IndexEntry, "IndexEntry"){
+    archimate #Implementation "ISearchable" as ISearchable <<interface>>
+    archimate #Implementation "ISortable" as ISortable <<interface>>
+    archimate #Implementation "IDisplayable" as IDisplayable <<interface>> 
+
+    archimate #Implementation "Prefix" as Prefix <<application-data-object>>
+    archimate #Implementation "Sortable" as Sortable <<application-data-object>>
+    archimate #Implementation "Metadata" as Metadata <<application-data-object>>
+}
+
+Rel_Association_Up(Prefix, ISearchable, "Prefix allows searching") 
+Rel_Association_Up(Sortable, ISortable, "Sortable allows sorting") 
+Rel_Association_Up(Metadata, IDisplayable, "Metadata is returned as a search result") 
+
+archimate #Implementation "Document" as Document <<application-data-object>>
+archimate #Implementation "Searched Fields" as SearchedFields <<application-data-object>>
+archimate #Implementation "Displayed Fields" as DisplayedFields <<application-data-object>>
+archimate #Implementation "Sorted Fields" as SortedFields <<application-data-object>>
+
+Rel_Composition_Up(Document, SearchedFields, "Document provides searched fields") 
+Rel_Composition_Up(Document, DisplayedFields, "Document provides displayed fields") 
+Rel_Composition_Up(Document, SortedFields, "Document provides sorted fields") 
+
+Grouping(Transformations, "Source document Transformations"){
+    archimate #Implementation "SearchTransform" as SearchTransform <<application-function>>
+    archimate #Implementation "DisplayTransform" as DisplayTransform <<application-function>>
+    archimate #Implementation "SortTransform" as SortTransform <<application-function>>
+}
+
+Rel_Flow_Up(SearchedFields, SearchTransform, "Provide fields to search for") 
+Rel_Flow_Up(DisplayedFields, DisplayTransform, "Provide fields to return as a search result") 
+Rel_Flow_Up(SortedFields, SortTransform, "Provide fields to sort on") 
+
+Rel_Flow_Up(SearchTransform, Prefix, "Convert to searchable data") 
+Rel_Flow_Up(DisplayTransform, Metadata, "Envelop object to display") 
+Rel_Flow_Up(SortTransform, Sortable, "Convert to sortable data") 
+
+@enduml
