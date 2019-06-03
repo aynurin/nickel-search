@@ -123,7 +123,7 @@ Don't use Nickel Search if:
 
 ## How it works
 
-Nickel Search is a node.js app that converts a set of documents into a prefix-queriable set of documents, so that you can use the capabilities of the storage system as your prefix-search server. I use it with AWS S3, so it provides a serverless search for my projects. In the [`samples`](./samples/) directory you will find several examples to get started.
+Nickel Search is a node.js app that converts a set of documents into a prefix-queriable set of documents, so that you can use the capabilities of the storage system as your prefix-search server. I use it with AWS S3, so it provides a serverless search for my projects.
 
 ## Future steps
 
