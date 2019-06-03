@@ -89,4 +89,5 @@ typings/
 # Compiled files
 dist/
 
-samples/data/index/*
+# TypeScript compiled files
+lib/
