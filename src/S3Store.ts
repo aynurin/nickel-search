@@ -38,7 +38,6 @@ export default class S3Source<TDoc> implements IDataStore<TDoc> {
 
         while (true) {
             const currentList = await this.listObjectsV2(params);
-            console.log(`Read ${currentList.Contents.length} items with ct: ${params.ContinuationToken}`);
 
             if (!currentList || !currentList.Contents) {
                 return;
@@ -53,6 +52,8 @@ export default class S3Source<TDoc> implements IDataStore<TDoc> {
 
             if (currentList.NextContinuationToken) {
                 params.ContinuationToken = currentList.NextContinuationToken;
+            } else {
+                return;
             }
         }
     }
