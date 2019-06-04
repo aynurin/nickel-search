@@ -1,20 +1,28 @@
 {
     "name": "nickel-search",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Nickel Search Server is a basic serverless prefix search indexer",
-    "keywords": ["nickel", "search", "serverless", "autocomplete"],
+    "keywords": [
+        "nickel",
+        "search",
+        "serverless",
+        "autocomplete"
+    ],
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "files": ["lib/**/*", "LICENSE"],
+    "files": [
+        "lib/**/*",
+        "LICENSE"
+    ],
     "scripts": {
         "test": "npx jest",
         "build": "tsc",
         "lint": "tslint -p tsconfig.json",
-        "prepare" : "npm run build",
-        "prepublishOnly" : "npm test && npm run lint",
-        "preversion" : "npm run lint",
-        "version" : "git add -A src",
-        "postversion" : "git push && git push --tags"
+        "prepare": "npm run build",
+        "prepublishOnly": "npm test && npm run lint",
+        "preversion": "npm run lint",
+        "version": "git add -A src",
+        "postversion": "git push && git push --tags"
     },
     "repository": {
         "type": "git",
