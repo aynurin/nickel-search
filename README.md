@@ -91,6 +91,8 @@ const searchRequest = 'nic';
 const searchResults = ns.search(searchRequest);
 ```
 
+See more usage examples in [nickel-samples](https://github.com/aynurin/nickel-samples) repository.
+
 ## Requirements
 
 * Indexer can run fairly long.
