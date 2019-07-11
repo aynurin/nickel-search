@@ -1,0 +1,463 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Resources:
+  
+  IndexerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "ecs-tasks.amazonaws.com"
+                - "vpc-flow-logs.amazonaws.com"
+        Version: '2012-10-17'
+      Path: /nickel-search/
+      Policies:
+        - PolicyName: "WriteLogs"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "cloudwatch:PutMetricData"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:DescribeLogGroups"
+                  - "logs:DescribeLogStreams"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+        - PolicyName: "NickelIndexS3Bucket_Policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource: 
+                  - !GetAtt IndexS3BucketA.Arn
+                  - !GetAtt IndexS3BucketB.Arn
+              - Effect: "Allow"
+                Action:
+                  - "s3:PutObject"
+                  - "s3:GetObject"
+                  - "s3:DeleteObject"
+                Resource: 
+                  - !Sub
+                    - ${ARN}/*
+                    - { ARN: !GetAtt IndexS3BucketA.Arn }
+                  - !Sub
+                    - ${ARN}/*
+                    - { ARN: !GetAtt IndexS3BucketB.Arn }
+        - PolicyName: "NickelSourceS3Bucket_Policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource: !GetAtt DataSourceS3Bucket.Arn
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                Resource: !Sub
+                  - ${ARN}/*
+                  - { ARN: !GetAtt DataSourceS3Bucket.Arn }
+
+  DataSourceS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+        BucketName: !Sub '${AWS::StackName}-${AWS::Region}-nickel-a5r3y-source'
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+
+  DataSourceS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref DataSourceS3Bucket
+      PolicyDocument: 
+        Statement: 
+          - Effect: "Allow"
+            Action:
+              - "s3:ListBucket"
+            Resource: 
+              - !GetAtt DataSourceS3Bucket.Arn
+            Principal: 
+              AWS:
+                - !GetAtt IndexerRole.Arn
+          - Effect: "Allow"
+            Action: 
+              - "s3:GetObject"
+            Resource: !Sub
+              - ${ARN}/*
+              - { ARN: !GetAtt DataSourceS3Bucket.Arn }
+            Principal: 
+              AWS:
+                - !GetAtt IndexerRole.Arn
+
+  IndexS3BucketA:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+        BucketName: !Sub '${AWS::StackName}-${AWS::Region}-nickel-a5r3y-index-a'
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+
+  IndexS3BucketAPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref IndexS3BucketA
+      PolicyDocument: 
+        Statement: 
+          - Effect: "Allow"
+            Action:
+              - "s3:ListBucket"
+            Resource: 
+              - !GetAtt IndexS3BucketA.Arn
+            Principal: 
+              AWS:
+                - !GetAtt IndexerRole.Arn
+          - Effect: "Allow"
+            Action: 
+              - "s3:GetObject"
+            Resource: !Sub
+              - ${ARN}/*
+              - { ARN: !GetAtt IndexS3BucketA.Arn }
+            Principal: 
+              AWS:
+                - !GetAtt IndexerRole.Arn
+          - Effect: "Allow"
+            Action: 
+              - "s3:GetObject"
+            Resource: !Sub
+              - ${ARN}/*
+              - { ARN: !GetAtt IndexS3BucketA.Arn }
+            Principal: 
+              CanonicalUser: !GetAtt SearchOriginAccessIdentity.S3CanonicalUserId
+          - Effect: "Allow"
+            Action: 
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+            Resource: !Sub
+              - ${ARN}/*
+              - { ARN: !GetAtt IndexS3BucketA.Arn }
+            Principal: 
+              AWS:
+                - !GetAtt IndexerRole.Arn
+
+  IndexS3BucketB:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+        BucketName: !Sub '${AWS::StackName}-${AWS::Region}-nickel-a5r3y-index-b'
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+
+  IndexS3BucketBPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref IndexS3BucketB
+      PolicyDocument: 
+        Statement: 
+          - Effect: "Allow"
+            Action:
+              - "s3:ListBucket"
+            Resource: 
+              - !GetAtt IndexS3BucketB.Arn
+            Principal: 
+              AWS:
+                - !GetAtt IndexerRole.Arn
+          - Effect: "Allow"
+            Action: 
+              - "s3:GetObject"
+            Resource: !Sub
+              - ${ARN}/*
+              - { ARN: !GetAtt IndexS3BucketB.Arn }
+            Principal: 
+              AWS:
+                - !GetAtt IndexerRole.Arn
+          - Effect: "Allow"
+            Action: 
+              - "s3:GetObject"
+            Resource: !Sub
+              - ${ARN}/*
+              - { ARN: !GetAtt IndexS3BucketB.Arn }
+            Principal: 
+              CanonicalUser: !GetAtt SearchOriginAccessIdentity.S3CanonicalUserId
+          - Effect: "Allow"
+            Action: 
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+            Resource: !Sub
+              - ${ARN}/*
+              - { ARN: !GetAtt IndexS3BucketB.Arn }
+            Principal: 
+              AWS:
+                - !GetAtt IndexerRole.Arn
+
+  SearchOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties: 
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub 'CloudFront OAI for Nickel Search Index Access ${AWS::StackName}'
+
+  DevOpsUser:
+    Type: AWS::IAM::User
+    Properties:
+      Path: /nickel-search/
+      UserName: !Sub '${AWS::StackName}-${AWS::Region}-devops'
+
+  DevOpsUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties: 
+      Serial: 1
+      UserName: !Ref DevOpsUser
+  
+  FlowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/${AWS::StackName}/nickel-flow/'
+      RetentionInDays: 1
+  
+  FargateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub '/${AWS::StackName}/nickel-fargate/'
+      RetentionInDays: 7
+
+  ClusterVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      EnableDnsHostnames: True
+      EnableDnsSupport: True
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-${AWS::Region}'
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref ClusterVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-${AWS::Region}'
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: !Sub '${AWS::StackName}-${AWS::Region}'
+      GroupName: !Sub '${AWS::StackName}-${AWS::Region}'
+      Tags: 
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-${AWS::Region}'
+      VpcId: !Ref ClusterVPC
+  SecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties: 
+      Description: "Allow all internal communication"
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: -1
+      SourceSecurityGroupId: !GetAtt SecurityGroup.GroupId
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ClusterVPC
+      CidrBlock: 10.0.1.0/26
+      AvailabilityZone: 
+        Fn::Select: 
+          - 0
+          - Fn::GetAZs: ""
+      Tags:
+        - Key: Name
+          Value: !Sub 'A-${AWS::StackName}-${AWS::Region}'
+  PrivateSubnetARouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref PrivateSubnetA
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ClusterVPC
+      CidrBlock: 10.0.1.64/26
+      AvailabilityZone: 
+        Fn::Select: 
+          - 1
+          - Fn::GetAZs: ""
+      Tags:
+        - Key: Name
+          Value: !Sub 'B-${AWS::StackName}-${AWS::Region}'
+  PrivateSubnetBRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref PrivateSubnetB
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref ClusterVPC
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcEndpointType: Gateway
+      RouteTableIds: 
+        - !Ref RouteTable
+  CloudWatchEventsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref ClusterVPC
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.events'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: True
+      SecurityGroupIds: 
+        - !GetAtt SecurityGroup.GroupId
+      SubnetIds: 
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+  CloudWatchLogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref ClusterVPC
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.logs'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: True
+      SecurityGroupIds: 
+        - !GetAtt SecurityGroup.GroupId
+      SubnetIds: 
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+  ECRDKREndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref ClusterVPC
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.dkr'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: True
+      SecurityGroupIds: 
+        - !GetAtt SecurityGroup.GroupId
+      SubnetIds: 
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+
+  ClusterRepository:
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: !Sub '${AWS::StackName}-ecr-repository'
+      RepositoryPolicyText: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Sid: AllowPushPull
+            Principal: 
+              AWS: !GetAtt DevOpsUser.Arn
+            Action: 
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+
+  WorkerCluster:
+    Type: AWS::ECS::Cluster
+    Properties: 
+      ClusterName: !Sub '${AWS::StackName}-cluster'
+
+  IndexerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties: 
+      ContainerDefinitions: 
+        - Name: 'indexer'
+          Essential: true
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ClusterRepository}:nickel-fargate-indexer"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options: 
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-group: !Ref FargateLogGroup
+              awslogs-stream-prefix: indexer
+      Cpu: 1024
+      ExecutionRoleArn: !GetAtt IndexerTaskExecutionRole.Arn
+      Family: !Sub '${AWS::StackName}-indexer'
+      Memory: 8192
+      NetworkMode: 'awsvpc'
+      RequiresCompatibilities: 
+        - 'FARGATE'
+      TaskRoleArn: !GetAtt IndexerRole.Arn
+
+  IndexerTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ecs-tasks.amazonaws.com"
+        Version: '2012-10-17'
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Path: /nickel-search/
+
+  EcsInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service: "ec2.amazonaws.com"
+          Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role'
+      Path: /nickel-search/
+
+Outputs:
+  DataSourceS3Bucket:
+    Description: S3 Bucket name that should contain source data
+    Value: !Ref DataSourceS3Bucket
+  IndexS3BucketA:
+    Description: S3 Bucket name that will be used to store index in configuration A
+    Value: !Ref  IndexS3BucketA
+  IndexS3BucketB:
+    Description: S3 Bucket name that will be used to store index in configuration B
+    Value: !Ref IndexS3BucketB
+  DevOpsUser:
+    Description: The DevOps user that can publish containers to ECR registry
+    Value: !Ref DevOpsUser
+  DevOpsUserAccessKeyId:
+    Description: The DevOps user's AccessKeyId
+    Value: !Ref DevOpsUserAccessKey
+  DevOpsUserSecretAccessKey:
+    Description: The DevOps user's SecretAccessKey
+    Value: !GetAtt DevOpsUserAccessKey.SecretAccessKey
+  ClusterRepository:
+    Description: The name of the Docker Repository
+    Value: !GetAtt  ClusterRepository.Arn
+  SubnetA:
+    Description: The name of a security group in the first availability zone
+    Value: !Ref PrivateSubnetA
+  SubnetB:
+    Description: The name of a security group in the second availability zone
+    Value: !Ref PrivateSubnetB
+  SecurityGroup:
+    Description: The name of the Security Group to launch the task
+    Value: !Ref  SecurityGroup
+  IndexerTaskDefinition:
+    Description: The name of the task definition
+    Value: !Ref  IndexerTask
+  Cluster:
+    Description: The name of the Docker Cluster
+    Value: !Ref  WorkerCluster

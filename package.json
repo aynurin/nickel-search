@@ -16,13 +16,19 @@
     ],
     "scripts": {
         "test": "npx jest",
-        "build": "tsc",
+        "build": "tsc -p tsconfig.json",
         "lint": "tslint -p tsconfig.json",
+        
         "prepare": "npm run build",
         "prepublishOnly": "npm test && npm run lint",
         "preversion": "npm run lint",
         "version": "git add -A src",
-        "postversion": "git push && git push --tags"
+        "postversion": "git push && git push --tags",
+        
+        "samples:build": "npm run build && tsc -p tsconfig.samples.json",
+        "samples:index": "npm run samples:build && node ./samples/dist/indexer.js",
+        "samples:search": "npm run samples:build && node ./samples/dist/search.js",
+        "samples:aws": "npm run samples:build && node ./samples/dist/deployaws.js"
     },
     "repository": {
         "type": "git",
@@ -33,12 +39,14 @@
     "homepage": "https://github.com/aynurin/nickel-search",
     "devDependencies": {
         "@types/dir-walker-gen": "^1.0.0",
+        "@types/commander": "^2.12.2",
         "@types/jest": "^24.0.12",
         "@types/node": "^11.13.9",
         "jest": "^24.8.0",
         "ts-jest": "^24.0.2",
         "tslint": "^5.16.0",
-        "typescript": "^3.4.5"
+        "typescript": "^3.4.5",
+        "commander": "^2.20.0"
     },
     "dependencies": {
         "aws-sdk": "^2.452.0",

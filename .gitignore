@@ -88,6 +88,8 @@ typings/
 
 # Compiled files
 dist/
-
-# TypeScript compiled files
+apps/
 lib/
+
+# Ignore index files
+data/index
