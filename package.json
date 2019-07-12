@@ -25,7 +25,7 @@
         "version": "git add -A src",
         "postversion": "git push && git push --tags",
         
-        "samples:build": "npm run build && tsc -p tsconfig.samples.json",
+        "samples:build": "npm run build && tsc -p ./samples/tsconfig.json",
         "samples:index": "npm run samples:build && node ./samples/dist/indexer.js",
         "samples:search": "npm run samples:build && node ./samples/dist/search.js",
         "samples:aws": "npm run samples:build && node ./samples/dist/deployaws.js"
@@ -45,11 +45,11 @@
         "jest": "^24.8.0",
         "ts-jest": "^24.0.2",
         "tslint": "^5.16.0",
-        "typescript": "^3.4.5",
-        "commander": "^2.20.0"
+        "typescript": "^3.4.5"
     },
     "dependencies": {
         "aws-sdk": "^2.452.0",
-        "dir-walker-gen": "^1.0.1"
+        "dir-walker-gen": "^1.0.1",
+        "commander": "^2.20.0"
     }
 }

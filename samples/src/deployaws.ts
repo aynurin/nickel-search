@@ -25,14 +25,12 @@ const fsAsync = {
     writeFile: promisify(fs.writeFile),
 };
 
-const exec = promisify(child_process.exec);
-
 const fargateTagName = "nickel-fargate-indexer";
 
 async function ensureStack(stackName: string): Promise<AWS.CloudFormation.Types.DescribeStacksOutput> {
     const stackInfo = await describeStack(stackName);
     const cfTemplate = await fsAsync.readFile(
-        path.join(path.dirname(__filename), "../../samples/aws/AWSStack.CF.yaml"));
+        relpath("../aws/AWSStack.CF.yaml"));
     const stackParams: AWS.CloudFormation.Types.CreateStackInput = {
         StackName: stackName,           /* required */
         Capabilities: [
@@ -47,8 +45,7 @@ async function ensureStack(stackName: string): Promise<AWS.CloudFormation.Types.
         }, {
             Key: "StackName",       /* required */
             Value: stackName,       /* required */
-        },
-        ],
+        }],
         TemplateBody: cfTemplate.toString(),
     };
     if (stackInfo) {
@@ -96,10 +93,10 @@ function validateStackOutput(stackOutput: AWS.CloudFormation.Types.DescribeStack
 
 async function generateDataParams(sourceBucket: string, targetBucket: string, awsProfile: string) {
     console.log("Generating indexing configuration...");
-    await fsAsync.writeFile(path.join(path.dirname(__filename), "../../dist/source.js"),
+    await fsAsync.writeFile(relpath("./source.js"),
         "Object.defineProperty(exports, \"__esModule\", { value: true });\n" +
         `exports.default = { location: "s3://${sourceBucket}/" };`);
-    await fsAsync.writeFile(path.join(path.dirname(__filename), "../../dist/target.js"),
+    await fsAsync.writeFile(relpath("./target.js"),
         "Object.defineProperty(exports, \"__esModule\", { value: true });\n" +
         `exports.default = { location: "s3://${targetBucket}/", prefixes: 1000 };`);
 }
@@ -115,8 +112,14 @@ async function uploadSampleData(sourceBucket: string) {
         "--region=" + commander.awsRegion,
         "s3",
         "sync",
-        "../../data/source/",
+        "./samples/data/source/",
         `s3://${sourceBucket}/`]);
+}
+
+function relpath(relToThisFile: string): string {
+    return path.join(
+        path.relative(process.cwd(), path.dirname(__filename)),
+        relToThisFile);
 }
 
 async function dockerBuild(): Promise<void> {
@@ -124,9 +127,9 @@ async function dockerBuild(): Promise<void> {
     console.log("Building docker image...");
     await spawn("docker", [
         "build",
-        "../..",
+        ".",
         "--file",
-        "../../docker/fargate/Dockerfile",
+        "./samples/docker/Dockerfile",
         "--tag=" + fargateTagName]);
 }
 
@@ -161,8 +164,8 @@ async function spawn(command: string, args: string[],
     console.debug(command, args.join(" "));
     return new Promise((resolve, reject) => {
         options = Object.assign({
-            cwd: path.dirname(__filename),
-            shell: true,
+            cwd: path.join(path.dirname(__filename), "../.."),
+            shell: false,
             stdio: "inherit",
         }, options);
         const subproc = child_process.spawn(command, args, options);
@@ -170,17 +173,13 @@ async function spawn(command: string, args: string[],
             reject(err);
         });
         subproc.on("close", (code: number) => {
-            resolve(code);
+            if (code === 0) {
+                resolve();
+            } else {
+                reject(code);
+            }
         });
     });
-}
-
-function memberOrDefault<T>(obj: any, membername: string, defaultValue?: T | undefined): T | undefined {
-    if (obj) {
-        return obj[membername];
-    } else {
-        return defaultValue;
-    }
 }
 
 function outputValueOrNull(stack: AWS.CloudFormation.Stack, key: string): string | undefined {
