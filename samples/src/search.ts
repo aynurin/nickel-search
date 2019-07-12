@@ -1,4 +1,6 @@
 
+import AWS from "aws-sdk";
+
 import commander from "commander";
 import readline from "readline";
 import nickel from "../../lib";
@@ -8,18 +10,25 @@ import definedIndex from "./target";
 
 commander
     .option("--index <index>", "Index location")
+    .option("--aws-profile <awsProfile>", "AWS Credentials Profile to use if the index is located in S3")
     .parse(process.argv);
 
 let index: any;
 
-// console.log("commander", commander);
+console.log("commander", commander);
 console.log("index", commander.index);
 
 if (commander.index) {
+    let credentials = null;
+    if (commander.awsProfile) {
+        credentials = new AWS.SharedIniFileCredentials({profile: commander.awsProfile});
+    }
     index = {
+        credentials,
         location: commander.index,
         prefixes: 1000,
     };
+    console.log("Created options", index);
 } else if (definedIndex) {
     index = definedIndex;
 }

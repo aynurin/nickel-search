@@ -36,7 +36,6 @@ export function fileKey(pageNum: number, key: string, maxShards: number) {
     return shardName(key, maxShards) + "/" + Buffer.from(key).toString("base64") + "-" + pageNum + ".json";
 }
 
-export type ICreateStoreOptions = ICreateStoreOptions;
 export function createStore<TDoc>(options: ICreateStoreOptions):
     IDataStore<TDoc> | null {
     if (options && options.location && typeof options.location === "string") {

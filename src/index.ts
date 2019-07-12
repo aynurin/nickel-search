@@ -1,11 +1,13 @@
 import { createStore } from "./Utils";
 
-import IIndexerOptions from "./model/IIndexerOptions";
+import ICreateStoreOptions from "./model/ICreateStoreOptions";
 import IIndexPage from "./model/IIndexPage";
-import ISearchOptions from "./model/ISearchOptions";
 
 import NickelIndex from "./NickelIndex";
 import NickelSearch from "./NickelSearch";
+
+import IIndexerOptions from "./model/IIndexerOptions";
+import ISearchOptions from "./model/ISearchOptions";
 
 export default class Nickel {
     public static searcher(options: ISearchOptions): NickelSearch {
@@ -28,3 +30,7 @@ export default class Nickel {
         return new NickelIndex(options, source, target);
     }
 }
+
+export type ICreateStoreOptions = ICreateStoreOptions;
+export type ISearchOptions = ISearchOptions;
+export type IIndexerOptions<TDoc> = IIndexerOptions<TDoc>;

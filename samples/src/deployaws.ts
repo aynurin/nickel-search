@@ -95,7 +95,7 @@ async function generateDataParams(sourceBucket: string, targetBucket: string, aw
     console.log("Generating indexing configuration...");
     await fsAsync.writeFile(relpath("./source.js"),
         "Object.defineProperty(exports, \"__esModule\", { value: true });\n" +
-        `exports.default = { location: "s3://${sourceBucket}/" };`);
+        `exports.default = { location: "s3://${sourceBucket}/", prefixes: 1000 };`);
     await fsAsync.writeFile(relpath("./target.js"),
         "Object.defineProperty(exports, \"__esModule\", { value: true });\n" +
         `exports.default = { location: "s3://${targetBucket}/", prefixes: 1000 };`);

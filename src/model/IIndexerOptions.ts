@@ -1,14 +1,16 @@
+
+import ICreateStoreOptions from "./ICreateStoreOptions";
 import IIndexEntry from "./IIndexEntry";
 
 export default interface IIndexerOptions<TDoc> {
     /**
      * Data source options
      */
-    source: any;
+    source: ICreateStoreOptions;
     /**
      * Index store options
      */
-    target: any;
+    target: ICreateStoreOptions;
     /**
      * How often to save intermediate results.
      */
