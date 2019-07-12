@@ -1,17 +1,29 @@
 import IDataStore from "./components/IDataStore";
+import ICreateStoreOptions from "./model/ICreateStoreOptions";
 
 import AWS from "aws-sdk";
 
 const S3_LOCATION_RX = /s3:\/\/(?<bucket>[^\/$]+)\//;
 
+export interface IS3StoreOptions {
+    bucket: string;
+    credentials?: AWS.Credentials;
+}
+
 export default class S3Source<TDoc> implements IDataStore<TDoc> {
-    public static parseLocation(location: string): string | null {
-        const match = location.match(S3_LOCATION_RX);
+    public static parseOptions(options: ICreateStoreOptions): IS3StoreOptions | null {
+        const match = options.location.match(S3_LOCATION_RX);
         if (match && match.groups) {
             const bucket = match.groups.bucket;
             if (typeof bucket === "string" && bucket.length > 0) {
-                console.log(`Parsed: ${bucket}`);
-                return bucket;
+                if (typeof options.credentials !== "undefined" && options.credentials instanceof AWS.Credentials) {
+                    return {
+                        bucket,
+                        credentials: options.credentials as AWS.Credentials,
+                    };
+                } else {
+                    return { bucket };
+                }
             }
         }
         return null;
@@ -20,16 +32,16 @@ export default class S3Source<TDoc> implements IDataStore<TDoc> {
     private bucketName: string;
     private s3: AWS.S3;
 
-    constructor(options: { bucket: string, awsProfile: string }) {
+    constructor(options: IS3StoreOptions) {
         this.bucketName = options.bucket;
         console.log(`Initializing with ${this.bucketName}`);
-        let credentials = new AWS.EnvironmentCredentials("AWS");
-        if (options.awsProfile) {
-            credentials = new AWS.SharedIniFileCredentials({profile: options.awsProfile});
-        }
+        // let credentials = new AWS.EnvironmentCredentials("AWS");
+        // if (options.awsProfile) {
+        //     credentials = new AWS.SharedIniFileCredentials({profile: options.awsProfile});
+        // }
         this.s3 = new AWS.S3({
             apiVersion: "2006-03-01",
-            credentials,
+            credentials: options.credentials,
         });
     }
 

@@ -4,6 +4,7 @@ import path from "path";
 import { promisify } from "util";
 
 import IDataStore from "./components/IDataStore";
+import ICreateStoreOptions from "./model/ICreateStoreOptions";
 
 const fs = {
     mkdir: promisify(_fs.mkdir),
@@ -12,12 +13,16 @@ const fs = {
     writeFile: promisify(_fs.writeFile),
 };
 
+export interface IFileStoreOptions {
+    dir: string;
+}
+
 export default class FileStore<TDoc> implements IDataStore<TDoc> {
-    public static parseLocation(location: string): string | null {
+    public static parseOptions(options: ICreateStoreOptions): IFileStoreOptions | null {
         try {
-            const stats = _fs.statSync(location);
+            const stats = _fs.statSync(options.location);
             if (stats.isDirectory()) {
-                return location;
+                return {dir: options.location};
             }
         } catch {
             // no-op
@@ -27,7 +32,7 @@ export default class FileStore<TDoc> implements IDataStore<TDoc> {
 
     private rootDir: string;
 
-    constructor(options: { dir: string }) {
+    constructor(options: IFileStoreOptions) {
         this.rootDir = options.dir;
     }
 

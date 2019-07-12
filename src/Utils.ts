@@ -5,7 +5,9 @@ import IDataStore from "./components/IDataStore";
 import FileStore from "./FileStore";
 import S3Store from "./S3Store";
 
-let isLE = true;
+import ICreateStoreOptions from "./model/ICreateStoreOptions";
+
+let isLittleEndian = true;
 
 (() => {
     // tslint:disable-next-line:max-line-length
@@ -14,7 +16,7 @@ let isLE = true;
     const buf8 = new Uint8ClampedArray(buf);
     const data = new Uint32Array(buf);
     data[0] = 0x0F000000;
-    isLE = buf8[0] !== 0x0f;
+    isLittleEndian = buf8[0] !== 0x0f;
 })();
 
 export function shardName(arg: string, maxShards: number): string {
@@ -24,7 +26,7 @@ export function shardName(arg: string, maxShards: number): string {
     let hash = 0;
     while (offset < digest.byteLength) {
         // tslint:disable-next-line:no-bitwise
-        hash ^= (isLE ? digest.readInt32LE(offset) : digest.readInt32BE(offset));
+        hash ^= (isLittleEndian ? digest.readInt32LE(offset) : digest.readInt32BE(offset));
         offset += 32 / 8;
     }
     return (Math.abs(hash) % maxShards).toString(36);
@@ -34,16 +36,17 @@ export function fileKey(pageNum: number, key: string, maxShards: number) {
     return shardName(key, maxShards) + "/" + Buffer.from(key).toString("base64") + "-" + pageNum + ".json";
 }
 
-export function createStore<TDoc>(options: any): IDataStore<TDoc> | null {
+export type ICreateStoreOptions = ICreateStoreOptions;
+export function createStore<TDoc>(options: ICreateStoreOptions):
+    IDataStore<TDoc> | null {
     if (options && options.location && typeof options.location === "string") {
-        let location = S3Store.parseLocation(options.location);
-        if (location != null) {
-            return new S3Store<TDoc>({ bucket: location, ...options });
-        } else {
-            location = FileStore.parseLocation(options.location);
-            if (location != null) {
-                return new FileStore<TDoc>({ dir: location });
-            }
+        const s3Options = S3Store.parseOptions(options); // { bucket: location, awsCredentials: options.credentials }
+        if (s3Options != null) {
+            return new S3Store<TDoc>(s3Options);
+        }
+        const filestoreOptions = FileStore.parseOptions(options);
+        if (filestoreOptions != null) {
+            return new FileStore<TDoc>(filestoreOptions);
         }
     }
     return null;
