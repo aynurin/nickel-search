@@ -87,9 +87,9 @@ typings/
 .dynamodb/
 
 # Compiled files
-dist/
-apps/
+samples/dist/
 lib/
 
 # Ignore index files
-data/index
+samples/data/
+

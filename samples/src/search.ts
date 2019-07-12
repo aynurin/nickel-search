@@ -1,13 +1,31 @@
 
+import commander from "commander";
 import readline from "readline";
 import nickel from "../../lib";
 import Colors from "./colors";
 
-const ns = nickel.searcher({
-    source: {
-        location: "./data/index",
+import definedIndex from "./target";
+
+commander
+    .option("--index <index>", "Index location")
+    .parse(process.argv);
+
+let index: any;
+
+// console.log("commander", commander);
+console.log("index", commander.index);
+
+if (commander.index) {
+    index = {
+        location: commander.index,
         prefixes: 1000,
-    },
+    };
+} else if (definedIndex) {
+    index = definedIndex;
+}
+
+const ns = nickel.searcher({
+    source: index,
 });
 
 const rl = readline.createInterface({

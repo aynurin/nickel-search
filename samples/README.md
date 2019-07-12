@@ -9,11 +9,11 @@ To start playing with Nickel, you can run this example locally. Just clone this 
 The following commands convert the source documents into a searchable index:
 
 ```bash
-$> git clone git@github.com:aynurin/nickel-samples.git
+$> git clone git@github.com:aynurin/nickel-search.git
 $> cd ./nickel-search
 $> npm install
 $> mkdir ./samples/data/index
-$> npm run samples:index -- --source=./samples/data/source --index=./samples/data/index
+$> npm run samples:index -- --data=./samples/data/source --index=./samples/data/index
 $> npm run samples:search -- --index=./samples/data/index
 ```
 

@@ -1,9 +1,41 @@
+
+import commander from "commander";
+
 import nickel from "../../lib";
 
 import IDataModel from "./model";
 
-import source from "./source";
-import target from "./target";
+import definedSource from "./source";
+import definedTarget from "./target";
+
+commander
+    .option("--data <data>", "Data source location")
+    .option("--index <index>", "Index location")
+    .parse(process.argv);
+
+let source: any;
+let target: any;
+
+// console.log("commander", commander);
+console.log("source", commander.data);
+console.log("target", commander.index);
+
+if (commander.data) {
+    source = {
+        location: commander.data,
+    };
+} else if (definedSource) {
+    source = definedSource;
+}
+
+if (commander.index) {
+    target = {
+        location: commander.index,
+        prefixes: 1000,
+    };
+} else if (definedTarget) {
+    target = definedTarget;
+}
 
 const options = {
     getDisplayedFields: (s3Uri: string, document: IDataModel) => document,

@@ -1,6 +1,2 @@
-
-const source = {
-    location: "../data/source",
-};
-
+const source = { };
 export default source;
