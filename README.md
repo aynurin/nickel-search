@@ -22,7 +22,7 @@ The goal of this project is to allow prefix search in a serverless way, so that 
 
 ## How to use
 
-There is a fully functional sample in the [/samples] directory, which also includes running the indexer as a Docker container on AWS Fargate. See README.md in the [/samples] directory for more info.
+There is a fully functional sample in the [/samples](/samples) directory, which also includes running the indexer as a Docker container on AWS Fargate. See README.md in the [/samples](/samples) directory for more info.
 
 Install Nickel Search:
 
