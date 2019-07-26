@@ -16,10 +16,6 @@ commander
 let source: any;
 let target: any;
 
-// console.log("commander", commander);
-console.log("source", commander.data);
-console.log("target", commander.index);
-
 if (commander.data) {
     source = {
         location: commander.data,

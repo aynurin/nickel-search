@@ -15,9 +15,6 @@ commander
 
 let index: any;
 
-console.log("commander", commander);
-console.log("index", commander.index);
-
 if (commander.index) {
     let credentials = null;
     if (commander.awsProfile) {

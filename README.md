@@ -12,7 +12,16 @@ Given the advanced querying almost any full text search engine allows, prefix se
 
 The goal of this project is to allow prefix search in a serverless way, so that you don't have to pay for servers hosting Solr, Elastic, or another server.
 
+## Current issues and TODO
+
+1. The search doesn't support multi-word search.
+2. The indexing takes a lot of time and RAM.
+3. No support for synonyms, stemming/lemmatization.
+4. More ranking sampels needed.
+
 ## How to use
+
+There is a fully functional sample in the [/samples] directory, which also includes running the indexer as a Docker container on AWS Fargate. See README.md in the [/samples] directory for more info.
 
 Install Nickel Search:
 
@@ -91,12 +100,10 @@ const searchRequest = 'nic';
 const searchResults = ns.search(searchRequest);
 ```
 
-See more usage examples in [nickel-samples](https://github.com/aynurin/nickel-samples) repository.
-
 ## Requirements
 
 * Indexer can run fairly long.
-  * In theory, most time consuming tasks can run in parallel to make it much faster, but it is not implemented.
+  * In theory, most time consuming tasks can run in parallel but it is not implemented.
 * It will store the entire index in RAM before saving it, so it will require a lot of RAM.
 
 ## Features

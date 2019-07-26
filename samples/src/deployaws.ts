@@ -245,10 +245,18 @@ ensureStack(commander.stackName).then(async (stackOutput: AWS.CloudFormation.Typ
     await dockerBuild();
     await dockerPublish(outputs.repository);
 
-    console.log("Run the indexer task manually:");
+    console.log("");
+    console.log("======================================");
+    console.log("To start the indexer:");
     console.log(`aws --profile=${commander.awsProfile} --region=${commander.awsRegion} ` +
                     `ecs run-task --cluster=${outputs.clusterName} --task-definition=${outputs.taskDefinition} ` +
                     `"--network-configuration=awsvpcConfiguration={` +
                         `subnets=[${outputs.subnetA},${outputs.subnetB}],` +
                         `securityGroups=[${outputs.securityGroup}],assignPublicIp=ENABLED}" --launch-type=FARGATE`);
+    console.log("");
+    console.log("To run search:");
+    console.log(`npm run samples:search -- --index=s3://${outputs.targetBucket}/ ` +
+                    `--aws-profile=${commander.awsProfile}`);
+    console.log("======================================");
+    console.log("");
 });

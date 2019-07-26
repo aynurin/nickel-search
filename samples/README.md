@@ -41,7 +41,7 @@ All but last steps are automated in the following command:
 npm run samples:deployaws -- --aws-profile=<aws_cli_profile_name> --aws-region=<aws_region_name> --stack-name=<your_preferred_cloudformaion_stack_name>
 ```
 
-In the output you will find another command that can be used to run the actual fargate ask for indexing.
+The command runs the first three steps and outputs two other commands: one to run the last step - the indexer, which is the AWS Fargate task that runs the created Docker container; and another one to run the search when the indexer has completed indexing. You can monitor indexing in AWS CloudWatch logs.
 
 ## Thoughts on testing these examples
 
@@ -49,4 +49,4 @@ Before releasing, the following scenarios have to be tested:
 
 1. Pull
 2. Build a local index and search it from commandline
-3. AWS fresh deploy, index, and search using HTTP
+3. AWS fresh deploy, index, and search
