@@ -5,8 +5,6 @@ This folder contains examples of using the library.
 ## TODO
 
 1. Learn to remove the CF stack retaining S3 buckets. Or take the S3 buckets out of the cloudformation.
-2. Finish the readme
-3. Rerun the QA
 
 ## Local index
 
