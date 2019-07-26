@@ -17,7 +17,8 @@ The goal of this project is to allow prefix search in a serverless way, so that 
 1. The search doesn't support multi-word search.
 2. The indexing takes a lot of time and RAM.
 3. No support for synonyms, stemming/lemmatization.
-4. More ranking sampels needed.
+4. No test coverage.
+5. More ranking sampels needed.
 
 ## How to use
 

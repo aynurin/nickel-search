@@ -25,7 +25,6 @@ if (commander.index) {
         location: commander.index,
         prefixes: 1000,
     };
-    console.log("Created options", index);
 } else if (definedIndex) {
     index = definedIndex;
 }
