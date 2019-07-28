@@ -28,7 +28,7 @@
         "samples:build": "npm run build && tsc -p ./samples/tsconfig.json",
         "samples:index": "npm run samples:build && node ./samples/dist/indexer.js",
         "samples:search": "npm run samples:build && node ./samples/dist/search.js",
-        "samples:aws": "npm run samples:build && node ./samples/dist/deployaws.js"
+        "samples:deploy": "npm run samples:build && node ./samples/dist/deploy.js"
     },
     "repository": {
         "type": "git",

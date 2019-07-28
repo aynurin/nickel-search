@@ -1,15 +1,17 @@
 
+import AWS from "aws-sdk";
 import commander from "commander";
 
 import nickel from "../../lib";
 
-import IDataModel from "./model";
+import IndexerOptions from "./model";
 
-import definedSource from "./source";
-import definedTarget from "./target";
+import defaultSource from "./source";
+import defaultIndex from "./target";
 
 commander
     .option("--data <data>", "Data source location")
+    .option("--aws-profile <awsProfile>", "AWS Profile to access data (if S3 is used)")
     .option("--index <index>", "Index location")
     .parse(process.argv);
 
@@ -20,8 +22,11 @@ if (commander.data) {
     source = {
         location: commander.data,
     };
-} else if (definedSource) {
-    source = definedSource;
+    if (commander.awsProfile) {
+        source.credentials = new AWS.SharedIniFileCredentials({profile: commander.awsProfile});
+    }
+} else if (defaultSource) {
+    source = defaultSource;
 }
 
 if (commander.index) {
@@ -29,31 +34,12 @@ if (commander.index) {
         location: commander.index,
         prefixes: 1000,
     };
-} else if (definedTarget) {
-    target = definedTarget;
+    if (commander.awsProfile) {
+        source.credentials = new AWS.SharedIniFileCredentials({profile: commander.awsProfile});
+    }
+} else if (defaultIndex) {
+    target = defaultIndex;
 }
 
-const options = {
-    getDisplayedFields: (s3Uri: string, document: IDataModel) => document,
-    getSearchedFields: (s3Uri: string, document: IDataModel) => ({
-        Title: document.title,
-    }),
-    onProgress: (key: string, document: IDataModel, indexEntries: any[], counter: number) => {
-        if (counter % 100 === 0) {
-            console.log(`Items processed: ${counter}`);
-        }
-    },
-    resultsPageSize: 50,
-    saveThreshold: 100,
-    sort: (a: IDataModel, aWeight: number, b: IDataModel, bWeight: number) => {
-        let sort = bWeight - aWeight;
-        if (sort === 0) {
-            sort = a.title.localeCompare(b.title);
-        }
-        return sort;
-    },
-    source,
-    target,
-};
-
+const options = new IndexerOptions(source, target);
 nickel.indexer(options).run();

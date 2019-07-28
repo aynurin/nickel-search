@@ -41,10 +41,17 @@ export default class NickelIndex<TDoc> {
                 }
             }
         }
+        let totalNumber = Object.values(this.indexDefinitions).length;
+        let finishedNumber = 0;
         for (const index of Object.values(this.indexDefinitions)) {
             if (index.itemsAddedAfterSave > 0) {
-                console.log(`Saving tail definition ${index.indexKey}`);
                 await this.saveIndex(index);
+                finishedNumber++;
+            } else {
+                totalNumber--;
+            }
+            if (finishedNumber % 100 === 0 || finishedNumber === totalNumber) {
+                console.log(`Saving tail definition ${finishedNumber} of ${totalNumber}`);
             }
         }
         console.log("All done");
