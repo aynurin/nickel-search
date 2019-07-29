@@ -7,8 +7,4 @@ export default interface ICreateStoreOptions {
      * Credentials, if required by the store
      */
     credentials?: any;
-    /**
-     * Number of index prefixes ("sharding" simulation)
-     */
-    prefixes: number;
 }

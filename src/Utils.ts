@@ -1,4 +1,6 @@
+
 import crypto from "crypto";
+import fs from "fs";
 
 import IDataStore from "./components/IDataStore";
 
@@ -49,4 +51,14 @@ export function createStore<TDoc>(options: ICreateStoreOptions):
         }
     }
     return null;
+}
+
+export function mkdirsSync(path: fs.PathLike, options?: string | number | fs.MakeDirectoryOptions | null | undefined) {
+    try {
+        fs.mkdirSync(path, options);
+    } catch (err) {
+        if (err.code !== "EEXIST") {
+            throw err;
+        }
+    }
 }

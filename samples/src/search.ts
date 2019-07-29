@@ -23,13 +23,13 @@ if (commander.index) {
     index = {
         credentials,
         location: commander.index,
-        prefixes: 1000,
     };
 } else if (definedIndex) {
     index = definedIndex;
 }
 
 const ns = nickel.searcher({
+    indexShards: 1000,
     source: index,
 });
 

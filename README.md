@@ -52,7 +52,7 @@ const options = {
         Title: document.Title,
     }),
     // Report progress during indexing.
-    onProgress: (key: string, document: IWordyWord, indexEntries: IIndexEntry[], counter: number) => {
+    onProgress: (stage: string, key: string, document: IWordyWord, indexEntries: IIndexEntry[], counter: number) => {
         if (counter % 100 === 0) {
             console.log(`Blog posts processed: ${counter}`);
         }
@@ -61,6 +61,8 @@ const options = {
     resultsPageSize: 50,
     // save checkpoints every 100 changes to each hash value
     saveThreshold: 100,
+    // shards in the index store
+    indexShards: 1000,
     // Implement to set search results sort order.
     sort: (a: MyBlogPost, aWeight: number, b: MyBlogPost, bWeight: number) => {
         let sort = bWeight - aWeight;
@@ -76,14 +78,13 @@ const options = {
     // Index store options
     target: {
         location: "../sample-index/", // existing folder that will store the search index
-        prefixes: 1000,
     },
 };
 
 nickel.indexer(options).run();
 ```
 
-In the sample above, the indexer will `JSON.decode` all files in `../sample-data/`, apply `getDisplayedFields` and `getSearchedFields` for each file, and save the index in `../sample-index/`. The indexer will split the index into `1000` 'shards' (`{ options.target.prefixes: 1000 }`). The number of shards has to be similar when indexing and searching against the same index.
+In the sample above, the indexer will `JSON.decode` all files in `../sample-data/`, apply `getDisplayedFields` and `getSearchedFields` for each file, and save the index in `../sample-index/`. The indexer will split the index into `1000` 'shards' (`{ options.indexShards: 1000 }`). The number of shards has to be similar when indexing and searching against the same index.
 
 Run the indexer. When it's done, run the search:
 
@@ -91,9 +92,9 @@ Run the indexer. When it's done, run the search:
 import nickel from "nickel-search";
 
 const ns = nickel.searcher({
+    indexShards: 1000,
     source: {
         location: "../sample-index/", // search index location
-        prefixes: 1000,
     },
 });
 

@@ -15,7 +15,7 @@ export default class NickelSearch {
     }
 
     public async search(term: string): Promise<IIndexPage | null> {
-        return await this.getPage(fileKey(0, term.toLowerCase(), this.options.source.prefixes));
+        return await this.getPage(fileKey(0, term.toLowerCase(), this.options.indexShards));
     }
 
     public async getPage(pageKey: string): Promise<IIndexPage | null> {

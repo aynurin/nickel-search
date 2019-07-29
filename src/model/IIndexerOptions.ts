@@ -1,6 +1,5 @@
 
 import ICreateStoreOptions from "./ICreateStoreOptions";
-import IIndexEntry from "./IIndexEntry";
 
 export default interface IIndexerOptions<TDoc> {
     /**
@@ -16,6 +15,7 @@ export default interface IIndexerOptions<TDoc> {
      */
     saveThreshold: number;
     resultsPageSize: number;
+    indexShards: number;
     /**
      * Requried. Implement to set search results sort order.
      */
@@ -31,5 +31,5 @@ export default interface IIndexerOptions<TDoc> {
     /**
      * Report progress during indexing.
      */
-    onProgress: (key: string, document: TDoc, indexEntries: IIndexEntry[], counter: number) => any;
+    onProgress?: (stage: string, key?: string, document?: any, itemsProcessed?: number, totalItems?: number) => any;
 }

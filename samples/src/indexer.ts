@@ -32,7 +32,6 @@ if (commander.data) {
 if (commander.index) {
     target = {
         location: commander.index,
-        prefixes: 1000,
     };
     if (commander.awsProfile) {
         source.credentials = new AWS.SharedIniFileCredentials({profile: commander.awsProfile});

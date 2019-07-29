@@ -2,6 +2,7 @@ import walk from "dir-walker-gen";
 import _fs from "fs";
 import path from "path";
 import { promisify } from "util";
+import { mkdirsSync } from "./Utils";
 
 import IDataStore from "./components/IDataStore";
 import ICreateStoreOptions from "./model/ICreateStoreOptions";
@@ -34,6 +35,7 @@ export default class FileStore<TDoc> implements IDataStore<TDoc> {
 
     constructor(options: IFileStoreOptions) {
         this.rootDir = options.dir;
+        mkdirsSync(this.rootDir);
     }
 
     public async * readNext(): AsyncIterableIterator<{key: string, document: TDoc}> {

@@ -16,8 +16,9 @@ export interface IDataModel {
 export default class IndexerOptions implements IIndexerOptions<IDataModel> {
     public source: ICreateStoreOptions;
     public target: ICreateStoreOptions;
-    public saveThreshold: number = 1000;
+    public saveThreshold: number = 100;
     public resultsPageSize: number = 100;
+    public indexShards: number = 1000;
 
     constructor(source: ICreateStoreOptions, target: ICreateStoreOptions) {
         this.source = source;
@@ -40,11 +41,5 @@ export default class IndexerOptions implements IIndexerOptions<IDataModel> {
         return {
             Title: document.title,
         };
-    }
-
-    public onProgress(key: string, document: IDataModel, indexEntries: IIndexEntry[], counter: number) {
-        if (counter % 100 === 0) {
-            console.log(`Items processed: ${counter}`);
-        }
     }
 }
