@@ -10,6 +10,8 @@ import ISearchOptions from "./model/ISearchOptions";
 import NickelIndex from "./NickelIndex";
 import NickelSearch from "./NickelSearch";
 
+import { RamPrefixBuffer } from "./PrefixBuffer";
+
 export default class Nickel {
     public static searcher(options: ISearchOptions): NickelSearch {
         const source = createStore<IIndexPage>(options.source);
@@ -32,7 +34,7 @@ export default class Nickel {
         } else {
             console.log("Index store created for", JSON.stringify(options.target));
         }
-        return new NickelIndex(options, source, target);
+        return new NickelIndex(options, source, target, new RamPrefixBuffer());
     }
 }
 

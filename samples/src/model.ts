@@ -25,10 +25,10 @@ export default class IndexerOptions implements IIndexerOptions<IDataModel> {
         this.target = target;
     }
 
-    public sort(a: IDataModel, aWeight: number, b: IDataModel, bWeight: number) {
-        let sort = bWeight - aWeight;
+    public sort(a: IIndexEntry, b: IIndexEntry) {
+        let sort = a.weight - b.weight;
         if (sort === 0) {
-            sort = a.title.localeCompare(b.title);
+            sort = a.original.title.localeCompare(b.original.title);
         }
         return sort;
     }

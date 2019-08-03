@@ -3,25 +3,26 @@ import ITransform from "./components/ITransform";
 
 import SearchTransform from "./SearchTransform";
 import SimpleTokenizer from "./SimpleTokenizer";
-import { fileKey } from "./Utils";
+import { fileKey, memusage } from "./Utils";
 
 import IIndexEntry from "./model/IIndexEntry";
 import IIndexerOptions from "./model/IIndexerOptions";
 import IIndexPage from "./model/IIndexPage";
 
-import IndexDefinition from "./IndexDefinition";
-import TempIndexStore from "./TempIndexStore";
+import { BasePrefixBuffer } from "./PrefixBuffer";
 
 export default class NickelIndex<TDoc> {
     private options: IIndexerOptions<TDoc>;
     private source: IDataStore<TDoc>;
     private searchTransform: ITransform<any, IIndexEntry[]>;
     private counter: number;
-    private indexDefinitions: { [prefix: string]: IndexDefinition; } = { };
     private indexStore: IDataStore<IIndexPage>;
-    private tempStore: TempIndexStore;
+    private prefixBuffer: BasePrefixBuffer;
+    private finishedPrefixCount: number = 0;
 
-    constructor(options: IIndexerOptions<TDoc>, source: IDataStore<TDoc>, target: IDataStore<IIndexPage>) {
+    constructor(options: IIndexerOptions<TDoc>,
+                source: IDataStore<TDoc>, target: IDataStore<IIndexPage>,
+                prefixBuffer: BasePrefixBuffer) {
         if (options.resultsPageSize < 1) {
             options.resultsPageSize = 1;
         }
@@ -30,7 +31,7 @@ export default class NickelIndex<TDoc> {
         this.indexStore = target;
         this.searchTransform = new SearchTransform(new SimpleTokenizer());
         this.counter = 0;
-        this.tempStore = new TempIndexStore(this.options.indexShards, this.options.saveThreshold, "./temp");
+        this.prefixBuffer = prefixBuffer;
     }
 
     /**
@@ -48,50 +49,36 @@ export default class NickelIndex<TDoc> {
             if (received != null) {
                 const {document, key} = received;
                 const indexEntries = this.transform(key, document);
-                for (const indexEntry of indexEntries) {
-                    const definition = this.getIndexFor(indexEntry);
-                    definition.add(indexEntry); // save a temporary file every 100 elements.
-                                                // when all done, re-read everything, sort, and save pages.
-                                                // we'll need local storage to do that.
-                    await definition.flushToTempFileOnThreshold();
-                }
+                await Promise.all(indexEntries.map((indexEntry) =>
+                    this.prefixBuffer.add(indexEntry.value, indexEntry)));
                 this.counter++;
                 this.reportProgress("indexing", key, document, this.counter);
             }
         }
         this.reportProgress("Indexing done");
-        const totalNumber = Object.values(this.indexDefinitions).length;
-        let finishedNumber = 0;
-        for (const index of Object.values(this.indexDefinitions)) {
-            await index.loadAllTempData();
-            await this.saveIndex(index);
-            finishedNumber++;
-            this.reportProgress("sorting", index.indexKey, index, finishedNumber, totalNumber);
+        const waiters = new Array<Promise<void>>();
+        const iterator = this.prefixBuffer.forEachPrefix((_, entries) =>
+            this.saveIndex(entries.indexKey, entries));
+        for (const received of iterator) {
+            waiters.push(received);
+            if (waiters.length >= 100) {
+                await Promise.all(waiters);
+                waiters.length = 0;
+            }
         }
+        await Promise.all(waiters);
         this.reportProgress("All done");
     }
 
     public transform(s3Uri: string, document: TDoc): IIndexEntry[] {
-        const indexFields = this.searchTransform.apply(s3Uri,
-            this.options.getSearchedFields(s3Uri, document));
-        for (const field of indexFields) {
-            field.metadata = this.options.getDisplayedFields(s3Uri, document);
-            field.original = document;
+        const searchedFields = this.options.getSearchedFields(s3Uri, document);
+        const displayedFields = this.options.getDisplayedFields(s3Uri, document);
+        const indexEntries = this.searchTransform.apply(s3Uri, searchedFields);
+        for (const indexEntry of indexEntries) {
+            indexEntry.metadata = displayedFields;
+            indexEntry.original = searchedFields;
         }
-        return indexFields;
-    }
-
-    private getIndexFor(indexEntry: IIndexEntry): IndexDefinition {
-        // we cannot use indexEntry.value directly as it contains natural data
-        // and js array/dictionary indexers are not from the natural domain
-        // being very flexible, they still have their limitations, e.g. such words as
-        // 'constructor' or 'toString' can behave in a different way
-        const index = Buffer.from(indexEntry.value).toString("base64");
-        const definition = index in this.indexDefinitions
-            ? this.indexDefinitions[index]
-            : (this.indexDefinitions[index] =
-                new IndexDefinition(indexEntry.value, this.tempStore));
-        return definition;
+        return indexEntries;
     }
 
     private reportProgress(stage: string, key?: string, document?: any, itemsProcessed?: number, totalItems?: number) {
@@ -106,25 +93,18 @@ export default class NickelIndex<TDoc> {
                         message += " of " + totalItems;
                     }
                     console.log(message);
-                    this.memusage();
+                    memusage();
                 }
             } else {
                 console.log(message);
-                this.memusage();
+                memusage();
             }
         }
     }
 
-    private memusage() {
-        const used = process.memoryUsage();
-        console.log(`MEM: external ${Math.round(used.external / 1024 / 1024 * 100) / 100} MB`);
-        console.log(`MEM: heapTotal ${Math.round(used.heapTotal / 1024 / 1024 * 100) / 100} MB`);
-        console.log(`MEM: heapUsed ${Math.round(used.heapUsed / 1024 / 1024 * 100) / 100} MB`);
-        console.log(`MEM: rss ${Math.round(used.rss / 1024 / 1024 * 100) / 100} MB`);
-    }
-
-    private async saveIndex(index: IndexDefinition): Promise<void> {
-        const entries = index.entries.sort((a, b) => this.options.sort(a.original, a.weight, b.original, b.weight))
+    private async saveIndex(indexKey: string, entries: IIndexEntry[]): Promise<void> {
+        const sortedEntries = entries
+            .sort(this.options.sort)
             .map((value) => ({
                 docId: value.docId,
                 ...value.metadata,
@@ -132,25 +112,27 @@ export default class NickelIndex<TDoc> {
         let stored = 0;
         let startFrom = 0;
         let pageNum = 0;
-        while (stored < entries.length) {
-            const thisPage = entries.slice(startFrom, startFrom + this.options.resultsPageSize);
+        while (stored < sortedEntries.length) {
+            const thisPage = sortedEntries.slice(startFrom, startFrom + this.options.resultsPageSize);
             startFrom = startFrom + this.options.resultsPageSize;
             const pageData = {
-                count: entries.length,
-                index: index.indexKey,
+                count: sortedEntries.length,
+                index: indexKey,
                 items: thisPage,
                 nextPageUri: stored + thisPage.length < entries.length ?
-                    fileKey(pageNum + 1, index.indexKey, this.options.indexShards) : null,
+                    fileKey(pageNum + 1, indexKey, this.options.indexShards) : null,
                 pageNum,
                 pageSize: this.options.resultsPageSize,
                 pageUri:
-                    fileKey(pageNum, index.indexKey, this.options.indexShards),
+                    fileKey(pageNum, indexKey, this.options.indexShards),
                 previousPageUri: pageNum > 0 ?
-                    fileKey(pageNum - 1, index.indexKey, this.options.indexShards) : null,
+                    fileKey(pageNum - 1, indexKey, this.options.indexShards) : null,
             };
             await this.indexStore.write(pageData.pageUri, pageData);
             pageNum++;
             stored += thisPage.length;
         }
+        this.finishedPrefixCount++;
+        this.reportProgress("sorting", indexKey, entries, this.finishedPrefixCount);
     }
 }

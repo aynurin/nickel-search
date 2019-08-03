@@ -15,4 +15,5 @@ module.exports = {
         "node"
     ],
     "testPathIgnorePatterns": ["/node_modules/", "JestMatchers.ts"],
+    "collectCoverage": true
 }
