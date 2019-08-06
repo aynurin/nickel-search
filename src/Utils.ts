@@ -1,4 +1,9 @@
 
+import * as uuid from "node-uuid";
+import os from "os";
+import path from "path";
+import rimraf from "rimraf";
+
 import crypto from "crypto";
 import fs from "fs";
 
@@ -98,4 +103,43 @@ export function byteArrayToLong(byteArray: Uint8Array): number {
     }
 
     return value;
-};
+}
+
+export interface IDisposable {
+    dispose(): Promise<void>;
+}
+
+export class TempDir implements IDisposable {
+    public path: string;
+
+    constructor() {
+        this.path = path.join(os.tmpdir(), uuid.v4() + "/");
+        mkdirsSync(this.path);
+    }
+
+    public toString() {
+        return this.path;
+    }
+
+    public async dispose(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            rimraf(this.path, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+}
+
+export async function using(obj: IDisposable, body: (obj: any) => Promise<void>): Promise<void> {
+    const context = obj;
+    try {
+        await body(obj);
+    } finally {
+        await obj.dispose();
+    }
+}

@@ -1,111 +1,153 @@
 import * as stream from "stream";
-import * as utils from "./Utils";
 
 type Encoding = "base64" | "ascii" | "utf8" | "utf-8" | "utf16le" |
-                "ucs2" | "ucs-2" | "latin1" | "binary" | "hex" | undefined;
+    "ucs2" | "ucs-2" | "latin1" | "binary" | "hex" | undefined;
 
-export class WritableStream<T> extends stream.Writable {
-    private underlyingStream: stream.Writable;
-    constructor(underlyingStream: stream.Writable, options?: stream.WritableOptions) {
-        super(Object.assign(options ? options : {}, { objectMode: true }));
-        this.underlyingStream = underlyingStream;
+/**
+ * Transforms entities into bytes. Writable is JS Objects, readable is bytes.
+ */
+// tslint:disable-next-line: max-classes-per-file
+export class EntityToBytesTransformStream extends stream.Transform {
+    constructor(options?: stream.TransformOptions) {
+        super(Object.assign(options ? options : {}, { writableObjectMode: true }));
     }
 
-    public _write(chunk: T, encoding: string, callback: (error: Error | null | undefined) => void) {
-        let callbackExecuted = false;
-        const cb = (err?: Error | null | undefined) => {
-            if (callbackExecuted === false) {
-                callback(err);
-                callbackExecuted = true;
-            }
-        }
+    public _transform(chunk: any, encoding: string, callback: (err: any) => void) {
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(JSON.stringify(chunk));
+        const data = Buffer.alloc(8 + buffer.length);
 
-        const dataBuffer = Buffer.from(JSON.stringify(chunk), encoding as Encoding);
-        const dataLength = Buffer.from(utils.longToByteArray(dataBuffer.length));
-        if (dataLength.length !== 8) {
-            cb(Error(`Expected data length section length is 8, received ${dataLength.length}: ` +
-                dataLength.toString("hex")));
+        data.writeDoubleBE(buffer.length, 0);
+        buffer.copy(data, 8, 0);
+
+        console.debug("E2B", buffer.length, data.length, data);
+
+        this.push(data);
+        callback(null);
+    }
+}
+
+/**
+ * Transforms bytes into entities. Writable is bytes, readable is JS Objects.
+ */
+// tslint:disable-next-line: max-classes-per-file
+export class BytesToEntityTransformStream extends stream.Transform {
+    private currentBuffer: Buffer;
+    private position: number;
+
+    constructor(options?: stream.TransformOptions) {
+        super(Object.assign(options ? options : {}, { readableObjectMode: true }));
+        this.currentBuffer = Buffer.alloc(0);
+        this.position = 0;
+    }
+
+    public _transform(chunk: any, encoding: string, callback: (err: any) => void) {
+        this.currentBuffer = Buffer.concat([this.currentBuffer, chunk]);
+        let item: any;
+        let countRead = 0;
+        do {
+            item = this.tryReadItem();
+            if (item) {
+                this.push(item);
+                countRead++;
+            }
+        } while (item);
+        if (countRead > 0) {
+            callback(null);
         }
-        if (this.underlyingStream.write(dataLength)) {
-            const written = this.underlyingStream.write(dataBuffer, "binary", cb);
-            cb();
-            return written;
-        } else {
-            cb(Error(
-                "Could not write object length." +
-                `Requested: ${dataBuffer.length}, ` +
-                `Writable length: ${this.underlyingStream.writableLength}`));
-            return false;
+    }
+
+    private tryReadItem(): any {
+        if (this.currentBuffer.length < 8) {
+            return null;
         }
+        const length = this.currentBuffer.readDoubleBE(this.position);
+        const startAt = this.position + 8;
+        if (this.currentBuffer.length < startAt + length) {
+            // not enough data to read
+            console.debug("B2E not enough data to read", this.currentBuffer.length, startAt, length);
+            return null;
+        }
+        // extract value
+        const buffer = Buffer.alloc(length);
+        this.currentBuffer.copy(buffer, 0, startAt, startAt + length);
+        console.debug("B2E1", this.currentBuffer.length, startAt, buffer);
+
+        // remove used bytes from buffer
+        const nextStart = startAt + length;
+        const newBuffer = Buffer.alloc(this.currentBuffer.length - nextStart);
+        this.currentBuffer.copy(newBuffer, 0, nextStart, this.currentBuffer.length);
+        this.currentBuffer = newBuffer;
+        this.position = 0;
+        console.debug("B2E2", this.currentBuffer.length, this.currentBuffer);
+
+        const item = JSON.parse(buffer.toString());
+        console.debug("B2E3", item);
+        return item;
     }
 }
 
 // tslint:disable-next-line: max-classes-per-file
-export class ReadableStream<T> extends stream.Readable {
-    private underlyingStream: stream.Readable;
-    private totalReadFromUnderlyingStream: number;
+export class MemoryDuplexStream extends stream.Duplex {
+    private buffer: Buffer;
+    private position: number;
+    private length: number;
+    private writePosition: number;
 
-    constructor(underlyingStream: stream.Readable, options?: stream.ReadableOptions) {
-        super(Object.assign(options ? options : {}, { objectMode: true }));
-        this.underlyingStream = underlyingStream;
-        this.totalReadFromUnderlyingStream = 0;
+    constructor(options?: stream.DuplexOptions | undefined) {
+        super(options);
+        this.buffer = Buffer.alloc(1024);
+        this.position = 0;
+        this.length = 0;
+        this.writePosition = 0;
+    }
+
+    public _write(chunk: any, encoding: string, callback: (err: any) => void): void {
+        const chunkBuffer = Buffer.from(chunk);
+        this.alloc(this.writePosition + chunkBuffer.length);
+        chunkBuffer.copy(this.buffer, this.writePosition);
+        this.writePosition = this.writePosition + chunkBuffer.length;
+        if (this.length < this.writePosition) {
+            this.length = this.writePosition;
+        }
+        callback(null);
     }
 
     public _read(size: number): void {
-        this.underlyingStream.on("readable", () => {
-            if (size == null) {
-                size = 10;
-            }
-            let readMore = true;
-            while (readMore && size > 0) {
-                readMore = false;
-                const itemLengthBuffer = this.underlyingStream.read(8) as Buffer | null;
-                if (itemLengthBuffer == null) {
-                    break; // no more data to read
-                }
-                this.totalReadFromUnderlyingStream += 8;
-                const requestedLength = utils.byteArrayToLong(itemLengthBuffer);
-                let dataLength = requestedLength;
-                let dataBuffer = Buffer.alloc(0);
-                while (dataLength > 0) {
-                    const currentBuffer = this.underlyingStream.read(dataLength) as Buffer | null;
-                    if (currentBuffer !== null) {
-                        this.totalReadFromUnderlyingStream += currentBuffer.length;
-                    }
-                    if (currentBuffer !== null && currentBuffer.length > 0 && currentBuffer.length <= dataLength) {
-                        dataLength -= currentBuffer.length;
-                        dataBuffer = Buffer.concat([dataBuffer, currentBuffer]);
-                    } else {
-                        const msg1 = "Unexpected condition. ";
-                        const msg2 = currentBuffer == null
-                                ? "Underlying stream returned no data after returning data length. "
-                            : currentBuffer.length === 0
-                                ? "Underlying stream returned empty buffer. "
-                            : currentBuffer.length > dataLength
-                                ? "Underlying stream returned more data than requested. "
-                            : "";
-                        process.nextTick(() => this.emit("error", Error(
-                            msg1 + msg2 +
-                            `Requested: ${dataLength}, ` +
-                            `Returned: ${currentBuffer ? currentBuffer.length : "null"}, ` +
-                            `Position: ${this.totalReadFromUnderlyingStream}`)));
-                        break;
-                    }
-                }
-                if (dataBuffer.length !== requestedLength) {
-                    process.nextTick(() => this.emit("error", Error(
-                                "Unexpected condition. " +
-                                "Buffer length does not match requested length. " +
-                                `Requested: ${dataLength}, ` +
-                                `Buffer length: ${dataBuffer.length}, ` +
-                                `Position: ${this.totalReadFromUnderlyingStream}`)));
-                }
-                if (dataBuffer.length > 0) {
-                    const obj = JSON.parse(dataBuffer.toString()) as T;
-                    readMore = this.push(obj);
-                    size--;
-                }
-            }
-        });
+        let chunkEnd = this.position + size;
+        if (chunkEnd > this.length) {
+            chunkEnd = this.length;
+        }
+        const chunkLength = chunkEnd - this.position;
+        if (chunkLength > 0) {
+            const readBuffer = Buffer.alloc(chunkLength);
+            this.buffer.copy(readBuffer, 0, this.position, chunkEnd);
+            this.push(readBuffer);
+            this.position += chunkLength;
+        }
+    }
+
+    public getBuffer(start?: number, end?: number): Buffer {
+        if (!start) {
+            start = 0;
+        }
+        if (!end) {
+            end = this.length;
+        }
+        const buff = Buffer.alloc(end - start);
+        this.buffer.copy(buff, 0, start, end);
+        return buff;
+    }
+
+    private alloc(newLength: number): void {
+        if (this.buffer.length >= newLength) {
+            return;
+        }
+        let newSize = this.buffer.length * 2;
+        if (newSize < newLength) {
+            newSize = newLength;
+        }
+        const newBuffer = Buffer.alloc(newSize);
+        this.buffer.copy(newBuffer, 0);
+        this.buffer = newBuffer;
     }
 }
