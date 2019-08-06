@@ -75,3 +75,27 @@ export function memusage() {
 function mem(title: string, val: number): string {
     return `${title} ${(Math.round(val / 1024 / 1024 * 100) / 100)} MB`.padEnd(8 + title.length, " ");
 }
+
+// https://stackoverflow.com/questions/8482309/converting-javascript-integer-to-byte-array-and-back
+export function longToByteArray(long: number): Uint8Array {
+    // we want to represent the input as a 8-bytes array
+    const byteArray = [0, 0, 0, 0, 0, 0, 0, 0];
+
+    for (let index = 0; index < byteArray.length; index++ ) {
+        // tslint:disable-next-line: no-bitwise
+        const byte = long & 0xff;
+        byteArray[index] = byte;
+        long = (long - byte) / 256;
+    }
+
+    return new Uint8Array(byteArray);
+}
+
+export function byteArrayToLong(byteArray: Uint8Array): number {
+    let value = 0;
+    for (let i = byteArray.length - 1; i >= 0; i--) {
+        value = (value * 256) + byteArray[i];
+    }
+
+    return value;
+};
