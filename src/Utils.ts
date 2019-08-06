@@ -58,9 +58,11 @@ export function createStore<TDoc>(options: ICreateStoreOptions):
     return null;
 }
 
-export function mkdirsSync(path: fs.PathLike, options?: string | number | fs.MakeDirectoryOptions | null | undefined) {
+export type MkdirsSyncOptions = string | number | fs.MakeDirectoryOptions | null | undefined;
+
+export function mkdirsSync(dirPath: fs.PathLike, options?: MkdirsSyncOptions) {
     try {
-        fs.mkdirSync(path, options);
+        fs.mkdirSync(dirPath, options);
     } catch (err) {
         if (err.code !== "EEXIST") {
             throw err;

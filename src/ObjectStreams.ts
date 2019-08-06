@@ -40,7 +40,7 @@ export class BytesToEntityTransformStream extends stream.Transform {
         this.position = 0;
     }
 
-    public _transform(chunk: any, encoding: string, callback: (err: any) => void) {
+    public _transform(chunk: any, encoding: string, callback: (err: any) => void): void {
         this.currentBuffer = Buffer.concat([this.currentBuffer, chunk]);
         let item: any;
         let countRead = 0;

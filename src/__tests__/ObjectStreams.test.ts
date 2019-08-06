@@ -52,7 +52,6 @@ it("can read in chunks from memory stream", () => {
     expect(data2).toEqual("World!");
 });
 
-
 it("can read from memory stream", (done) => {
     const memStream = new ostream.MemoryDuplexStream();
     memStream.write("Hello ");
