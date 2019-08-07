@@ -19,8 +19,6 @@ export class EntityToBytesTransformStream extends stream.Transform {
         data.writeDoubleBE(buffer.length, 0);
         buffer.copy(data, 8, 0);
 
-        console.debug("E2B", buffer.length, data.length, data);
-
         this.push(data);
         callback(null);
     }
@@ -64,13 +62,11 @@ export class BytesToEntityTransformStream extends stream.Transform {
         const startAt = this.position + 8;
         if (this.currentBuffer.length < startAt + length) {
             // not enough data to read
-            console.debug("B2E not enough data to read", this.currentBuffer.length, startAt, length);
             return null;
         }
         // extract value
         const buffer = Buffer.alloc(length);
         this.currentBuffer.copy(buffer, 0, startAt, startAt + length);
-        console.debug("B2E1", this.currentBuffer.length, startAt, buffer);
 
         // remove used bytes from buffer
         const nextStart = startAt + length;
@@ -78,11 +74,8 @@ export class BytesToEntityTransformStream extends stream.Transform {
         this.currentBuffer.copy(newBuffer, 0, nextStart, this.currentBuffer.length);
         this.currentBuffer = newBuffer;
         this.position = 0;
-        console.debug("B2E2", this.currentBuffer.length, this.currentBuffer);
 
-        const item = JSON.parse(buffer.toString());
-        console.debug("B2E3", item);
-        return item;
+        return JSON.parse(buffer.toString());
     }
 }
 

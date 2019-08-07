@@ -71,7 +71,6 @@ export class LocalFilePrefixBuilder extends BasePrefixBuffer {
                 if (fserr) {
                     reject(fserr);
                 }
-                console.log("Creating write stream...", key, containerFileName);
                 const stream = fs.createWriteStream(containerFileName, { flags: "a" });
                 stream.on("close", () => {
                     this.addEntryContainer(key);
@@ -92,7 +91,6 @@ export class LocalFilePrefixBuilder extends BasePrefixBuffer {
     public load(key: string): Promise<IndexEntryContainer> {
         return new Promise((resolve, reject) => {
             const containerFileName = this.getContainerFileName(key);
-            console.log("Loading container", key, containerFileName);
 
             const readStream = new ostream.BytesToEntityTransformStream();
 
@@ -106,7 +104,6 @@ export class LocalFilePrefixBuilder extends BasePrefixBuffer {
             readStream.on("readable", () => {
                 // tslint:disable-next-line: no-conditional-assignment
                 while ((item = readStream.read()) != null) {
-                    console.log("Item read into container", item);
                     container.push(item);
                 }
                 stream.close();
