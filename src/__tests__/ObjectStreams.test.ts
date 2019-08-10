@@ -1,4 +1,5 @@
-import * as mem from "memory-streams";
+import fs from "fs";
+import path from "path";
 import * as ostream from "../ObjectStreams";
 
 it("can write one object", () => {
@@ -63,6 +64,45 @@ it("can read from memory stream", (done) => {
     });
 });
 
+// borrowed from https://github.com/doanythingfordethklok/memory-stream/
+it("can stream file to memory", (done) => {
+    const source = path.join(__dirname, "./ObjectStreams.source1.txt");
+    const gold = fs.readFileSync(source);
+    const rs = fs.createReadStream(source);
+    const ws = new ostream.MemoryDuplexStream();
+
+    ws.on("finish", () => {
+        expect(ws.getBuffer()).toEqual(gold);
+        done();
+    });
+
+    rs.pipe(ws);
+});
+
+it("can stream file into object reader", (done) => {
+    const source = path.join(__dirname, "./ObjectStreams.source2.dat");
+
+    const allItems = new Array<any>();
+
+    const readStream = new ostream.BytesToEntityTransformStream();
+    readStream.on("error", (err) => done(err));
+    readStream.on("readable", () => {
+        let item: any = null;
+        // tslint:disable-next-line: no-conditional-assignment
+        while ((item = readStream.read()) != null) {
+            allItems.push(item);
+        }
+    });
+
+    const fileStream = fs.createReadStream(source);
+    fileStream.on("close", () => {
+        expect(allItems).toHaveLength(9);
+        done();
+    });
+    fileStream.on("error", (err) => done(err));
+    fileStream.pipe(readStream);
+});
+
 it("can write two objects", () => {
     const a = {
         some: "eye",
@@ -120,20 +160,17 @@ it("can write and read three objects", (done) => {
         some: "gamma",
         token: 444,
     };
-    const writeMemoryStream = new mem.WritableStream();
-    const testedWriteStream = new ostream.EntityToBytesTransformStream();
-    testedWriteStream.pipe(writeMemoryStream);
+    const memStream = new ostream.MemoryDuplexStream();
+    const entityStream = new ostream.EntityToBytesTransformStream();
+    entityStream.pipe(memStream);
 
-    testedWriteStream.write(a);
-    testedWriteStream.write(b);
-    testedWriteStream.write(c);
-    testedWriteStream.end();
-
-    const readMemoryStream = new mem.ReadableStream(writeMemoryStream.toString());
-    writeMemoryStream.end();
+    entityStream.write(a);
+    entityStream.write(b);
+    entityStream.write(c);
+    entityStream.end();
 
     const testedReadStream = new ostream.BytesToEntityTransformStream();
-    readMemoryStream.pipe(testedReadStream);
+    memStream.pipe(testedReadStream);
 
     testedReadStream.on("readable", () => {
         const ra = testedReadStream.read();

@@ -64,7 +64,7 @@ const options = {
     // shards in the index store
     indexShards: 1000,
     // Implement to set search results sort order.
-    sort: (a: MyBlogPost, aWeight: number, b: MyBlogPost, bWeight: number) => {
+    sort: (a: MyBlogPost, b: MyBlogPost) => {
         let sort = bWeight - aWeight;
         if (sort === 0) {
             sort = a.Title.localeCompare(b.Title);
@@ -141,3 +141,11 @@ Nickel Search is a node.js app that converts a set of documents into a prefix-qu
 * Make indexer resumable.
 * Optimize time and memory usage.
 * Try other features of mature full text search solutions and see if they can be added to Nickel.
+
+## Release notes
+
+### v0.3
+
+* Changed the tokenizer to split on more punctuation marks
+* Added local file buffer to reduce RAM consumption
+* Enhanced sorting performance

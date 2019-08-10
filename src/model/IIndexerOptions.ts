@@ -1,6 +1,6 @@
 
 import ICreateStoreOptions from "./ICreateStoreOptions";
-import IIndexEntry from "./IIndexEntry";
+import ISearchable from "./ISearchable";
 
 export default interface IIndexerOptions<TDoc> {
     /**
@@ -20,7 +20,7 @@ export default interface IIndexerOptions<TDoc> {
     /**
      * Requried. Implement to set search results sort order.
      */
-    sort: (a: IIndexEntry, b: IIndexEntry) => number;
+    sort: (a: ISearchable, b: ISearchable) => number;
     /**
      * Required. Implement to set which fields to return with search results.
      */

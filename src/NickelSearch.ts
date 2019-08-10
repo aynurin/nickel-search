@@ -1,38 +1,42 @@
 import IDataStore from "./components/IDataStore";
 
-import { fileKey } from "./Utils";
-
 import IIndexPage from "./model/IIndexPage";
 import ISearchOptions from "./model/ISearchOptions";
+
+import IWordTokenizer from "./components/IWordTokenizer";
+import IndexRecord from "./IndexRecord";
+import SimpleTokenizer from "./SimpleTokenizer";
 
 export default class NickelSearch {
     private options: ISearchOptions;
     private source: IDataStore<IIndexPage>;
+    private tokenizer: IWordTokenizer;
 
     constructor(options: ISearchOptions, source: IDataStore<IIndexPage>) {
         this.options = options;
         this.source = source;
+        this.tokenizer = new SimpleTokenizer();
     }
 
     public async search(term: string): Promise<IIndexPage | null> {
-        return await this.getPage(fileKey(0, term.toLowerCase(), this.options.indexShards));
+        const searchtokens = this.tokenizer.tokenize(term)
+            .map((query) => IndexRecord.createFromSearchQuery(query, this.options.indexShards));
+        return await this.getPage(searchtokens[0].getPageUri(0));
     }
 
     public async getPage(pageKey: string): Promise<IIndexPage | null> {
-        const [b64key, index] = pageKey.replace(".json", "").split("/")[1].split("-");
-        const key = Buffer.from(b64key, "base64").toString();
 
         const hrstart = process.hrtime();
         try {
             const result = await this.source.readItem(pageKey);
             const hrend = process.hrtime(hrstart);
-            console.debug(`Retrieving key ${key}-${index} (${pageKey}) took: ${hrend[0]}s ${hrend[1] / 1000000}ms`);
+            console.debug(`Retrieving key ${pageKey} took: ${hrend[0]}s ${hrend[1] / 1000000}ms`);
             return result;
         } catch (e) {
             const hrend = process.hrtime(hrstart);
-            console.debug(`Retrieving key ${key}-${index} (${pageKey}) took: ${hrend[0]}s ${hrend[1] / 1000000}ms`);
+            console.debug(`Retrieving key ${pageKey} took: ${hrend[0]}s ${hrend[1] / 1000000}ms`);
             if (e.code === "NoSuchKey") {
-                throw new Error(`Object with key ${key}-${index} was not found`);
+                throw new Error(`Object with key ${pageKey} was not found`);
             }
             throw e;
         }

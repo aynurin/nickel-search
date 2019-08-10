@@ -1,8 +1,8 @@
-import { createStore } from "./Utils";
+import { TempDir } from "./Utils";
 
 import ICreateStoreOptions from "./model/ICreateStoreOptions";
-import IIndexEntry from "./model/IIndexEntry";
 import IIndexPage from "./model/IIndexPage";
+import ISearchable from "./model/ISearchable";
 
 import IIndexerOptions from "./model/IIndexerOptions";
 import ISearchOptions from "./model/ISearchOptions";
@@ -10,7 +10,11 @@ import ISearchOptions from "./model/ISearchOptions";
 import NickelIndex from "./NickelIndex";
 import NickelSearch from "./NickelSearch";
 
-import { RamPrefixBuffer } from "./PrefixBuffer";
+import IDataStore from "./components/IDataStore";
+import FileStore from "./FileStore";
+import S3Store from "./S3Store";
+
+import { LocalFilePrefixBuilder, RamPrefixBuffer } from "./PrefixBuffer";
 
 export default class Nickel {
     public static searcher(options: ISearchOptions): NickelSearch {
@@ -34,8 +38,25 @@ export default class Nickel {
         } else {
             console.log("Index store created for", JSON.stringify(options.target));
         }
-        return new NickelIndex(options, source, target, new RamPrefixBuffer());
+        const tempDir = new TempDir();
+        const prefixBuilder = new LocalFilePrefixBuilder(tempDir.toString());
+        return new NickelIndex(options, source, target, prefixBuilder);
     }
 }
 
-export { ICreateStoreOptions, ISearchOptions, IIndexerOptions, IIndexEntry };
+function createStore<TDoc>(options: ICreateStoreOptions):
+        IDataStore<TDoc> | null {
+    if (options && options.location && typeof options.location === "string") {
+        const s3Options = S3Store.parseOptions(options); // { bucket: location, awsCredentials: options.credentials }
+        if (s3Options != null) {
+            return new S3Store<TDoc>(s3Options);
+        }
+        const filestoreOptions = FileStore.parseOptions(options);
+        if (filestoreOptions != null) {
+            return new FileStore<TDoc>(filestoreOptions);
+        }
+    }
+    return null;
+}
+
+export { ICreateStoreOptions, ISearchOptions, IIndexerOptions, ISearchable };

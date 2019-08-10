@@ -1,15 +1,15 @@
 import ITransform from "./components/ITransform";
 import IWordTokenizer from "./components/IWordTokenizer";
-import IndexEntry from "./model/IIndexEntry";
+import ISearchable from "./model/ISearchable";
 
-export default class SearchTransform implements ITransform<any, IndexEntry[]> {
+export default class SearchTransform implements ITransform<any, ISearchable[]> {
     private tokenizer: IWordTokenizer;
 
     constructor(tokenizer: IWordTokenizer) {
         this.tokenizer = tokenizer;
     }
 
-    public apply(key: string, sourceItem: any): IndexEntry[] {
+    public apply(key: string, sourceItem: any): ISearchable[] {
         return this.getIndexEntries(key, sourceItem);
     }
 
@@ -37,8 +37,8 @@ export default class SearchTransform implements ITransform<any, IndexEntry[]> {
         return allPrefixes;
     }
 
-    public getIndexEntries(docId: string, doc: any): IndexEntry[] {
-        const allEntries: IndexEntry[] = [];
+    public getIndexEntries(docId: string, doc: any): ISearchable[] {
+        const allEntries: ISearchable[] = [];
         for (const field in doc) {
             if (doc.hasOwnProperty(field)) {
                 let value = doc[field];

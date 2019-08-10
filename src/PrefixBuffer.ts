@@ -4,138 +4,206 @@ import path from "path";
 
 import * as ostream from "./ObjectStreams";
 
-import IIndexEntry from "./model/IIndexEntry";
-import * as Utils from "./Utils";
+import IndexRecord from "./IndexRecord";
+import * as indexModel from "./IndexRecord";
+import ISearchable from "./model/ISearchable";
 
 export abstract class BasePrefixBuffer {
-    public abstract add(key: string, entry: IIndexEntry): Promise<void>;
-    public abstract load(key: string): Promise<IndexEntryContainer>;
-    public abstract forEachPrefix<T>(fn: (prefix: string, entries: IndexEntryContainer) => Promise<T>):
-        IterableIterator<Promise<T>>;
+    public addRequests: number = 0;
+    public addCompleted: number = 0;
 
-    protected safeKey(key: string): string {
-        // we cannot use indexEntry.value directly as it contains natural data
-        // and js array/dictionary indexers are not from the natural domain
-        // being very flexible, they still have their limitations, e.g. such words as
-        // 'constructor' or 'toString' can disbehave
-        return Buffer.from(key).toString("base64");
+    public abstract add(record: IndexRecord): Promise<void>;
+    public abstract load(safeKey: indexModel.recordSafeKey): Promise<IndexRecordSet>;
+    public abstract forEachPrefix<T>(
+        fn: (index: IndexRecordSet) => Promise<T>,
+        maxParallelJobs: number): Promise<T[]>;
+
+    protected async batchForEach<TIn, TOut>(
+        inputCollection: TIn[],
+        convert: (input: TIn) => Promise<TOut>,
+        maxJobsInBatch: number): Promise<TOut[]> {
+        const waiters: Array<Promise<TOut>> = [];
+        let results: TOut[] = [];
+        for (const item of inputCollection) {
+            if (maxJobsInBatch <= 1) {
+                results.push(await convert(item));
+            } else {
+                const oneWaiter = convert(item);
+                waiters.push(oneWaiter);
+                if (waiters.length >= maxJobsInBatch) {
+                    results = results.concat(await Promise.all(waiters));
+                    waiters.length = 0;
+                }
+            }
+        }
+        results = results.concat(await Promise.all(waiters));
+        return results;
     }
 }
 
 // tslint:disable-next-line: max-classes-per-file
 export class RamPrefixBuffer extends BasePrefixBuffer {
-    private indexDefinitions: { [prefix: string]: IndexEntryContainer; } = { };
+    private indexDefinitions: Map<string, IndexRecordSet> = new Map();
 
-    public add(key: string, entry: IIndexEntry): Promise<void> {
-        const container = this.getEntryContainer(key);
-        container.push(entry);
+    public add(record: IndexRecord): Promise<void> {
+        this.getEntryContainer(record).push(record);
         return Promise.resolve();
     }
 
-    public load(key: string): Promise<IndexEntryContainer> {
-        return Promise.resolve(this.getEntryContainer(key));
+    public load(safeKey: indexModel.recordSafeKey): Promise<IndexRecordSet> {
+        return Promise.resolve(this.getEntryContainer(undefined, safeKey));
     }
 
-    public * forEachPrefix<T>(fn: (prefix: string, entries: IndexEntryContainer) => Promise<T>):
-        IterableIterator<Promise<T>> {
-        for (const pair of Object.entries(this.indexDefinitions)) {
-            yield fn(pair[0], pair[1]);
+    public async forEachPrefix<T>(
+        fn: (index: IndexRecordSet) => Promise<T>,
+        maxParallelJobs: number): Promise<T[]> {
+        return await this.batchForEach(Array.from(this.indexDefinitions.values()), fn, maxParallelJobs);
+    }
+
+    private getEntryContainer(record?: IndexRecord, safeKey?: indexModel.recordSafeKey):
+                              IndexRecordSet {
+        if (record == null && safeKey == null) {
+            throw new Error("Invalid arguments: either record or safeKey should be defined");
         }
-    }
-
-    private getEntryContainer(key: string): IndexEntryContainer {
-        const safeKey = this.safeKey(key);
-        const definition = safeKey in this.indexDefinitions
-            ? this.indexDefinitions[safeKey]
-            : (this.indexDefinitions[safeKey] = new IndexEntryContainer(key));
+        // indexSafeKey cannot be undefined after the previous check
+        const indexSafeKey = record == null ? safeKey! : record.safekey;
+        let definition = this.indexDefinitions.get(indexSafeKey);
+        if (!definition) {
+            definition = new IndexRecordSet(indexSafeKey);
+            this.indexDefinitions.set(indexSafeKey, definition);
+        }
         return definition;
     }
 }
 
 // tslint:disable-next-line: max-classes-per-file
 export class LocalFilePrefixBuilder extends BasePrefixBuffer {
-    private indexDefinitions: { [prefix: string]: string; } = { };
-    private rootPath: string;
-    private maxShards: number;
+    public readonly indexDefinitions: Map<string, IndexRecord> = new Map();
+    private readonly rootPath: string;
 
-    constructor(rootPath: string, maxShards: number) {
+    constructor(rootPath: string) {
         super();
         this.rootPath = rootPath;
-        this.maxShards = maxShards;
     }
 
-    public add(key: string, entry: IIndexEntry): Promise<void> {
-        return new Promise((resolve, reject) => {
-            const containerFileName = this.getContainerFileName(key);
-            fs.mkdir(path.dirname(containerFileName), { recursive: true }, (fserr) => {
-                if (fserr) {
-                    reject(fserr);
+    public async add(record: IndexRecord): Promise<void> {
+        this.addRequests++;
+
+        const containerFileName = await this.getContainerFileName(record, true);
+        const fileStream = fs.createWriteStream(containerFileName, { flags: "a" });
+        const objStream = new ostream.EntityToBytesTransformStream();
+
+        const endstreams = (async () => new Promise((resolve, reject) => {
+            fileStream.on("close", () => {
+                if (!this.indexDefinitions.has(record.safekey)) {
+                    this.indexDefinitions.set(record.safekey, record);
                 }
-                const stream = fs.createWriteStream(containerFileName, { flags: "a" });
-                stream.on("close", () => {
-                    this.addEntryContainer(key);
-                    resolve();
-                });
-                stream.on("error", (serr) => reject(serr));
-
-                const writeStream = new ostream.EntityToBytesTransformStream();
-                writeStream.pipe(stream);
-                writeStream.write(entry);
-                writeStream.end();
-
-                stream.end();
+                this.addCompleted++;
+                resolve();
             });
-        });
+            fileStream.on("error", (err) => reject(err));
+            objStream.on("error", (err) => reject(err));
+        }))();
+
+        objStream.pipe(fileStream);
+        objStream.write(record.searchable);
+        objStream.end();
+
+        await endstreams;
     }
 
-    public load(key: string): Promise<IndexEntryContainer> {
-        return new Promise((resolve, reject) => {
-            const containerFileName = this.getContainerFileName(key);
-
-            const readStream = new ostream.BytesToEntityTransformStream();
-
-            const stream = fs.createReadStream(containerFileName);
-            stream.on("close", () => resolve(container));
-            stream.on("error", (err) => reject(err));
-            stream.pipe(readStream);
-
-            const container = new IndexEntryContainer(key);
-            let item: IIndexEntry;
-            readStream.on("readable", () => {
-                // tslint:disable-next-line: no-conditional-assignment
-                while ((item = readStream.read()) != null) {
-                    container.push(item);
-                }
-                stream.close();
-            });
-        });
+    public async forEachPrefix<T>(
+        fn: (index: IndexRecordSet) => Promise<T>,
+        maxParallelJobs: number): Promise<T[]> {
+        return await this.batchForEach(
+            Array.from(this.indexDefinitions.values()),
+            async (sample) => await this.loadBySample(sample).then(fn),
+            maxParallelJobs);
     }
 
-    public * forEachPrefix<T>(fn: (prefix: string, entries: IndexEntryContainer) => Promise<T>):
-        IterableIterator<Promise<T>> {
-        for (const pair of Object.entries(this.indexDefinitions)) {
-            yield this.load(pair[1]).then((container) => fn(pair[1], container));
+    public async load(safeKey: indexModel.recordSafeKey): Promise<IndexRecordSet> {
+        const sampleRecord = this.indexDefinitions.get(safeKey);
+        if (typeof sampleRecord === "undefined") {
+            throw new Error("The requested key was not found in this index: " + safeKey);
         }
+        return await this.loadBySample(sampleRecord);
     }
 
-    private getContainerFileName(key: string): string {
-        return path.join(this.rootPath, Utils.fileKey(0, key, this.maxShards));
+    public async loadBySample(sampleRecord: IndexRecord): Promise<IndexRecordSet> {
+        const indexUri = await this.getContainerFileName(sampleRecord);
+        return await this.loadRecordSet(sampleRecord.safekey, sampleRecord.maxShards, indexUri);
     }
 
-    private addEntryContainer(key: string): void {
-        const safeKey = this.safeKey(key);
-        if (!(safeKey in this.indexDefinitions)) {
-            this.indexDefinitions[safeKey] = key;
+    public async loadRecordSet(safekey: indexModel.recordSafeKey,
+                               maxShards: number,
+                               indexUri: fs.PathLike): Promise<IndexRecordSet> {
+
+        const fileReader = fs.createReadStream(indexUri);
+
+        const container = new IndexRecordSet(safekey);
+        const objectComposer = new ostream.BytesToEntityTransformStream();
+        objectComposer.debugnote = indexUri.toString();
+
+        objectComposer.on("readable", () => {
+            let item: ISearchable;
+            // tslint:disable-next-line: no-conditional-assignment
+            while ((item = objectComposer.read()) != null) {
+                container.push(new IndexRecord(item, maxShards));
+            }
+        });
+
+        const endstreams = (async () => /*await*/ new Promise<IndexRecordSet>((resolve, reject) => {
+            fileReader.on("error", (serr) => {
+                objectComposer.destroy();
+                reject(serr);
+            });
+            objectComposer.on("error", (serr) => reject(serr));
+            objectComposer.on("end", () => {
+                // all data has been output, which occurs after the callback in transform._flush() has been called
+                if (container.length === 0) {
+                    if (container.length === 0) {
+                        reject(new Error("No elements read for " + indexUri));
+                    }
+                    if (objectComposer.hasBuffer === true) {
+                        reject(new Error(`Stream finished at ${objectComposer.position} ` +
+                            `with more to read from buffer ${indexUri}`));
+                    }
+                } else {
+                    resolve(container); // if I don't resolve in fileReader.close, it keeps crashing.
+                }
+            });
+        }))();
+
+        fileReader.pipe(objectComposer);
+
+        return await endstreams;
+    }
+
+    private async getContainerFileName(record: IndexRecord, createDir: boolean = false): Promise<string> {
+        const shardUri = path.join(this.rootPath, record.shard);
+        const pageUri = path.join(shardUri, record.getPageName(0));
+        if (!createDir) {
+            return Promise.resolve(pageUri);
+        } else {
+            return new Promise((resolve, reject) => {
+                fs.mkdir(shardUri, (err) => {
+                    if (err && err.code !== "EEXIST") {
+                        reject(err);
+                    } else {
+                        resolve(pageUri);
+                    }
+                });
+            });
         }
     }
 }
 
 // tslint:disable-next-line: max-classes-per-file
-export class IndexEntryContainer extends Array<IIndexEntry> {
-    public indexKey: string;
+export class IndexRecordSet extends Array<IndexRecord> {
+    public safeKey: indexModel.recordSafeKey;
 
-    constructor(indexKey: string) {
+    constructor(safeKey: indexModel.recordSafeKey) {
         super();
-        this.indexKey = indexKey;
+        this.safeKey = safeKey;
     }
 }

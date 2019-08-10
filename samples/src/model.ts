@@ -1,5 +1,5 @@
 
-import { ICreateStoreOptions, IIndexEntry, IIndexerOptions } from "../../lib";
+import { ICreateStoreOptions, IIndexerOptions, ISearchable } from "../../lib";
 
 export interface IDataModel {
     key: string;
@@ -25,7 +25,7 @@ export default class IndexerOptions implements IIndexerOptions<IDataModel> {
         this.target = target;
     }
 
-    public sort(a: IIndexEntry, b: IIndexEntry) {
+    public sort(a: ISearchable, b: ISearchable) {
         let sort = a.weight - b.weight;
         if (sort === 0) {
             sort = a.original.title.localeCompare(b.original.title);

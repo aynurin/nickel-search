@@ -3,18 +3,20 @@ import ITransform from "./components/ITransform";
 
 import SearchTransform from "./SearchTransform";
 import SimpleTokenizer from "./SimpleTokenizer";
-import { fileKey, memusage } from "./Utils";
+import * as Utils from "./Utils";
 
-import IIndexEntry from "./model/IIndexEntry";
 import IIndexerOptions from "./model/IIndexerOptions";
 import IIndexPage from "./model/IIndexPage";
+import ISearchable from "./model/ISearchable";
 
-import { BasePrefixBuffer } from "./PrefixBuffer";
+import IndexRecord from "./IndexRecord";
+
+import { BasePrefixBuffer, LocalFilePrefixBuilder } from "./PrefixBuffer";
 
 export default class NickelIndex<TDoc> {
     private options: IIndexerOptions<TDoc>;
     private source: IDataStore<TDoc>;
-    private searchTransform: ITransform<any, IIndexEntry[]>;
+    private searchTransform: ITransform<any, ISearchable[]>;
     private counter: number;
     private indexStore: IDataStore<IIndexPage>;
     private prefixBuffer: BasePrefixBuffer;
@@ -35,42 +37,35 @@ export default class NickelIndex<TDoc> {
     }
 
     /**
-     * Should probably be refactored so that the public interface looks more like:
-     * ```
-     * while (doc = source.read)
-     *      index.write(doc);
-     * ```
-     */
-    /**
-     * Runs indexing
+     * Runs indexing. This very much looks like ReadStream -> TransformStream -> WriteStream, but
+     * it is difficult to achieve a defined level of paralellism at all stages, so for now
+     * all "streams" are just custom classes.
      */
     public async run(): Promise<void> {
+        // read all entities to be indexed (see source: IDataStore<TDoc>)
         for await (const received of this.source.readNext()) {
             if (received != null) {
                 const {document, key} = received;
-                const indexEntries = this.transform(key, document);
-                await Promise.all(indexEntries.map((indexEntry) =>
-                    this.prefixBuffer.add(indexEntry.value, indexEntry)));
+                // transform them into searchable records (see searchTransform: ITransform<in,out>)
+                const indexRecords = this.transform(key, document)
+                    .map((searchable) => new IndexRecord(searchable, this.options.indexShards));
+                // store the received records in a temporary storage (see BasePrefixBuffer)
+                await Promise.all(indexRecords.map((index) => this.prefixBuffer.add(index)));
                 this.counter++;
                 this.reportProgress("indexing", key, document, this.counter);
             }
         }
-        this.reportProgress("Indexing done");
+        this.reportProgress("Indexing done. " +
+            `${this.prefixBuffer.addCompleted} of ${this.prefixBuffer.addRequests} docs added`);
         const waiters = new Array<Promise<void>>();
-        const iterator = this.prefixBuffer.forEachPrefix((_, entries) =>
-            this.saveIndex(entries.indexKey, entries));
-        for (const received of iterator) {
-            waiters.push(received);
-            if (waiters.length >= 100) {
-                await Promise.all(waiters);
-                waiters.length = 0;
-            }
-        }
-        await Promise.all(waiters);
+        // sort (this.options.sort)
+        // and start saving into final storage (see indexStore: IDataStore<IIndexPage>)
+        console.log("NickelIndex: waiting for saveIndex...");
+        await this.prefixBuffer.forEachPrefix(async (index) => await this.saveIndex(index), 100);
         this.reportProgress("All done");
     }
 
-    public transform(s3Uri: string, document: TDoc): IIndexEntry[] {
+    public transform(s3Uri: string, document: TDoc): ISearchable[] {
         const searchedFields = this.options.getSearchedFields(s3Uri, document);
         const displayedFields = this.options.getDisplayedFields(s3Uri, document);
         const indexEntries = this.searchTransform.apply(s3Uri, searchedFields);
@@ -93,21 +88,21 @@ export default class NickelIndex<TDoc> {
                         message += " of " + totalItems;
                     }
                     console.log(message);
-                    memusage();
+                    Utils.memusage();
                 }
             } else {
                 console.log(message);
-                memusage();
+                Utils.memusage();
             }
         }
     }
 
-    private async saveIndex(indexKey: string, entries: IIndexEntry[]): Promise<void> {
-        const sortedEntries = entries
-            .sort(this.options.sort)
+    private async saveIndex(index: IndexRecord[]): Promise<void> {
+        const sortedEntries = index
+            .sort((a, b) => this.options.sort(a.searchable, b.searchable))
             .map((value) => ({
-                docId: value.docId,
-                ...value.metadata,
+                docId: value.searchable.docId,
+                ...value.searchable.metadata,
             }));
         let stored = 0;
         let startFrom = 0;
@@ -117,22 +112,22 @@ export default class NickelIndex<TDoc> {
             startFrom = startFrom + this.options.resultsPageSize;
             const pageData = {
                 count: sortedEntries.length,
-                index: indexKey,
+                index: index[0].key,
                 items: thisPage,
-                nextPageUri: stored + thisPage.length < entries.length ?
-                    fileKey(pageNum + 1, indexKey, this.options.indexShards) : null,
+                nextPageUri: stored + thisPage.length < index.length ?
+                    index[0].getPageUri(pageNum + 1) : null,
                 pageNum,
                 pageSize: this.options.resultsPageSize,
                 pageUri:
-                    fileKey(pageNum, indexKey, this.options.indexShards),
+                    index[0].getPageUri(pageNum),
                 previousPageUri: pageNum > 0 ?
-                    fileKey(pageNum - 1, indexKey, this.options.indexShards) : null,
+                    index[0].getPageUri(pageNum - 1) : null,
             };
             await this.indexStore.write(pageData.pageUri, pageData);
             pageNum++;
             stored += thisPage.length;
         }
         this.finishedPrefixCount++;
-        this.reportProgress("sorting", indexKey, entries, this.finishedPrefixCount);
+        this.reportProgress("sorting", index[0].key, index, this.finishedPrefixCount);
     }
 }

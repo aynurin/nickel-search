@@ -1,4 +1,5 @@
 import * as stream from "stream";
+import { StringDecoder } from "string_decoder";
 
 type Encoding = "base64" | "ascii" | "utf8" | "utf-8" | "utf16le" |
     "ucs2" | "ucs-2" | "latin1" | "binary" | "hex" | undefined;
@@ -29,8 +30,12 @@ export class EntityToBytesTransformStream extends stream.Transform {
  */
 // tslint:disable-next-line: max-classes-per-file
 export class BytesToEntityTransformStream extends stream.Transform {
+    public debugnote: string = "";
+    public hasBuffer: boolean = false;
+    public position: number;
+
     private currentBuffer: Buffer;
-    private position: number;
+    private countRead: number = 0;
 
     constructor(options?: stream.TransformOptions) {
         super(Object.assign(options ? options : {}, { readableObjectMode: true }));
@@ -40,27 +45,44 @@ export class BytesToEntityTransformStream extends stream.Transform {
 
     public _transform(chunk: any, encoding: string, callback: (err: any) => void): void {
         this.currentBuffer = Buffer.concat([this.currentBuffer, chunk]);
+        if (this.currentBuffer.length > 0) {
+            this.hasBuffer = true;
+        }
         let item: any;
-        let countRead = 0;
+        do {
+            item = this.tryReadItem();
+            if (item !== null) {
+                this.push(item);
+                this.countRead++;
+            }
+        } while (item);
+        callback(null);
+    }
+
+    public _final(callback: () => void) {
+        let item: any;
         do {
             item = this.tryReadItem();
             if (item) {
                 this.push(item);
-                countRead++;
+                this.countRead++;
             }
         } while (item);
-        if (countRead > 0) {
-            callback(null);
-        }
+        callback();
     }
 
     private tryReadItem(): any {
         if (this.currentBuffer.length < 8) {
+            if (this.currentBuffer.length > 0) {
+                this.hasBuffer = true;
+            }
             return null;
         }
+
         const length = this.currentBuffer.readDoubleBE(this.position);
         const startAt = this.position + 8;
         if (this.currentBuffer.length < startAt + length) {
+            this.hasBuffer = true;
             // not enough data to read
             return null;
         }
@@ -75,7 +97,13 @@ export class BytesToEntityTransformStream extends stream.Transform {
         this.currentBuffer = newBuffer;
         this.position = 0;
 
-        return JSON.parse(buffer.toString());
+        if (this.currentBuffer.length === 0) {
+            this.hasBuffer = false;
+        }
+
+        const result = JSON.parse(buffer.toString());
+
+        return result;
     }
 }
 
@@ -131,6 +159,16 @@ export class MemoryDuplexStream extends stream.Duplex {
         return buff;
     }
 
+    public getString(encoding: Encoding = "utf8", start?: number, end?: number): string {
+        const buffer = this.getBuffer(start, end);
+        const decoder = new StringDecoder(encoding);
+        const str = decoder.write(buffer);
+
+        decoder.end();
+
+        return str;
+    }
+
     private alloc(newLength: number): void {
         if (this.buffer.length >= newLength) {
             return;
@@ -144,3 +182,13 @@ export class MemoryDuplexStream extends stream.Duplex {
         this.buffer = newBuffer;
     }
 }
+
+/*
+ * Notes:
+ * readable.end =>    when there is no more data to be consumed from the stream
+ * readable.close =>  when the stream and any of its underlying resources have been closed
+ * writable.finish => after stream.end() is called and all chunks have been processed by stream._transform()
+ * writable.end =>    all data has been output, which occurs after the callback in transform._flush() has been called.
+ *                    _flush will be called when there is no more written data to be consumed, but before the 'end'
+ *                    event is emitted signaling the end of the Readable stream.
+ */

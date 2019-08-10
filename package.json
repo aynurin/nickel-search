@@ -18,7 +18,7 @@
         "test": "npx jest",
         "build": "tsc -p tsconfig.json",
         "lint": "tslint -p tsconfig.json",
-        "prepare": "npm run build",
+        "prepare": "npm run build && npm run lint && npm run test",
         "prepublishOnly": "npm test && npm run lint",
         "preversion": "npm run lint",
         "version": "git add -A src",
@@ -28,7 +28,7 @@
         "samples:index": "node ./samples/dist/indexer.js",
         "samples:search": "node ./samples/dist/search.js",
         "profile:index": "node --prof ./samples/dist/indexer.js",
-        "profile:process": "node --prof-process isolate-*-v8.log > prof-processed.txt && del isolate-*-v8.log"
+        "profile:process": "node --prof-process"
     },
     "repository": {
         "type": "git",

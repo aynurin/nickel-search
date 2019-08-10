@@ -2,7 +2,7 @@ import IWordTokenizer from "./components/IWordTokenizer";
 
 export default class SimpleTokenizer implements IWordTokenizer {
     public tokenize(value: string): string[] {
-        return value.split(/\.\s+|\.$|\s+|,|;|:/gi).filter((val) => val.length > 0);
+        return value.split(/\.\s+|\.$|\s+|[,;:?!"$*\\\/()_]/gi).filter((val) => val.length > 0);
     }
 }
 
