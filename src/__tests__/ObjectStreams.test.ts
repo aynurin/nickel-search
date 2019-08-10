@@ -96,7 +96,7 @@ it("can stream file into object reader", (done) => {
 
     const fileStream = fs.createReadStream(source);
     fileStream.on("close", () => {
-        expect(allItems).toHaveLength(9);
+        expect(allItems).toHaveLength(4);
         done();
     });
     fileStream.on("error", (err) => done(err));
