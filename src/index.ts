@@ -59,4 +59,4 @@ function createStore<TDoc>(options: ICreateStoreOptions):
     return null;
 }
 
-export { ICreateStoreOptions, ISearchOptions, IIndexerOptions, ISearchable };
+export { ICreateStoreOptions, ISearchOptions, IIndexerOptions, ISearchable, IIndexPage };
