@@ -3,7 +3,6 @@ import ITransform from "./components/ITransform";
 
 import SearchTransform from "./SearchTransform";
 import SimpleTokenizer from "./SimpleTokenizer";
-import * as Utils from "./Utils";
 
 import IIndexerOptions from "./model/IIndexerOptions";
 import IIndexPage from "./model/IIndexPage";
@@ -88,11 +87,11 @@ export default class NickelIndex<TDoc> {
                         message += " of " + totalItems;
                     }
                     console.log(message);
-                    Utils.memusage();
+                    memusage();
                 }
             } else {
                 console.log(message);
-                Utils.memusage();
+                memusage();
             }
         }
     }
@@ -130,4 +129,17 @@ export default class NickelIndex<TDoc> {
         this.finishedPrefixCount++;
         this.reportProgress("sorting", index[0].key, index, this.finishedPrefixCount);
     }
+}
+
+function memusage() {
+    const used = process.memoryUsage();
+    console.debug(`MEM (${process.pid}):`,
+        mem("ext", used.external),
+        mem("het", used.heapTotal),
+        mem("heu", used.heapUsed),
+        mem("rss", used.rss));
+}
+
+function mem(title: string, val: number): string {
+    return `${title} ${(Math.round(val / 1024 / 1024 * 100) / 100)} MB`.padEnd(8 + title.length, " ");
 }

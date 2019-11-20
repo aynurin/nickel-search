@@ -17,19 +17,6 @@ export function mkdirsSync(dirPath: fs.PathLike, options?: MkdirsSyncOptions) {
     }
 }
 
-export function memusage() {
-    const used = process.memoryUsage();
-    console.debug(`MEM (${process.pid}):`,
-        mem("ext", used.external),
-        mem("het", used.heapTotal),
-        mem("heu", used.heapUsed),
-        mem("rss", used.rss));
-}
-
-function mem(title: string, val: number): string {
-    return `${title} ${(Math.round(val / 1024 / 1024 * 100) / 100)} MB`.padEnd(8 + title.length, " ");
-}
-
 export interface IDisposable {
     dispose(): Promise<void>;
 }
