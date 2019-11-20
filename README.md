@@ -138,6 +138,15 @@ Nickel Search is a node.js app that converts a set of documents into a prefix-qu
 
 ## Future steps
 
+TODO:
+
+* Deallocate stack after indexing done, keeping the source and target S3 buckets:
+    * Move the S3 buckets definition to a different stack, and reference them from the current stack
+    * Or delete money-consuming objects from the created stack
+* Add storage to Docker container before indexing starts
+* Remove storage from Docker container when indexing finishes.
+* Create a project directory for fabu.
+
 * Make indexer resumable.
 * Optimize time and memory usage.
 * Try other features of mature full text search solutions and see if they can be added to Nickel.

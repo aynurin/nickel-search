@@ -70,6 +70,7 @@ Resources:
 
   DataSourceS3Bucket:
     Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
     Properties:
         BucketName: !Sub '${AWS::StackName}-${AWS::Region}-nickel-a5r3y-source'
         PublicAccessBlockConfiguration:
@@ -104,6 +105,7 @@ Resources:
 
   IndexS3BucketA:
     Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
     Properties:
         BucketName: !Sub '${AWS::StackName}-${AWS::Region}-nickel-a5r3y-index-a'
         PublicAccessBlockConfiguration:
@@ -156,6 +158,7 @@ Resources:
 
   IndexS3BucketB:
     Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
     Properties:
         BucketName: !Sub '${AWS::StackName}-${AWS::Region}-nickel-a5r3y-index-b'
         PublicAccessBlockConfiguration:
