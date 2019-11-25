@@ -41,4 +41,4 @@ if (commander.index) {
 }
 
 const options = new IndexerOptions(source, target);
-nickel.indexer(options).run();
+nickel.indexer(options).then((indexer) => indexer.run());

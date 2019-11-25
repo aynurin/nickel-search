@@ -34,11 +34,7 @@ export default class S3Source<TDoc> implements IDataStore<TDoc> {
 
     constructor(options: IS3StoreOptions) {
         this.bucketName = options.bucket;
-        console.log(`Initializing with ${this.bucketName}`);
-        // let credentials = new AWS.EnvironmentCredentials("AWS");
-        // if (options.awsProfile) {
-        //     credentials = new AWS.SharedIniFileCredentials({profile: options.awsProfile});
-        // }
+        console.log(`Initializing S3Source(bucketName=${this.bucketName})`);
         this.s3 = new AWS.S3({
             apiVersion: "2006-03-01",
             credentials: options.credentials,

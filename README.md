@@ -81,7 +81,7 @@ const options = {
     },
 };
 
-nickel.indexer(options).run();
+nickel.indexer(options).then((indexer) => indexer.run());
 ```
 
 In the sample above, the indexer will `JSON.decode` all files in `../sample-data/`, apply `getDisplayedFields` and `getSearchedFields` for each file, and save the index in `../sample-index/`. The indexer will split the index into `1000` 'shards' (`{ options.indexShards: 1000 }`). The number of shards has to be similar when indexing and searching against the same index.
@@ -141,8 +141,8 @@ Nickel Search is a node.js app that converts a set of documents into a prefix-qu
 TODO:
 
 * Deallocate stack after indexing done, keeping the source and target S3 buckets:
-    * Move the S3 buckets definition to a different stack, and reference them from the current stack
-    * Or delete money-consuming objects from the created stack
+  * Move the S3 buckets definition to a different stack, and reference them from the current stack
+  * Or delete money-consuming objects from the created stack
 * Add storage to Docker container before indexing starts
 * Remove storage from Docker container when indexing finishes.
 * Create a project directory for fabu.

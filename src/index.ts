@@ -11,28 +11,26 @@ import NickelIndex from "./NickelIndex";
 import NickelSearch from "./NickelSearch";
 
 import IDataStore from "./components/IDataStore";
-import FileStore from "./FileStore";
-import S3Store from "./S3Store";
 
 import { LocalFilePrefixBuilder, RamPrefixBuffer } from "./PrefixBuffer";
 
 export default class Nickel {
-    public static searcher(options: ISearchOptions): NickelSearch {
-        const source = createStore<IIndexPage>(options.source);
+    public static async searcher(options: ISearchOptions): Promise<NickelSearch> {
+        const source = await createStore<IIndexPage>(options.source);
         if (!source) {
             throw new Error(`Could not create data source from ${JSON.stringify(options.source)}`);
         }
         return new NickelSearch(options, source);
     }
 
-    public static indexer<TDoc>(options: IIndexerOptions<TDoc>): NickelIndex<TDoc> {
-        const source = createStore<TDoc>(options.source);
+    public static async indexer<TDoc>(options: IIndexerOptions<TDoc>): Promise<NickelIndex<TDoc>> {
+        const source = await createStore<TDoc>(options.source);
         if (!source) {
             throw new Error(`Could not create data source from ${JSON.stringify(options.source)}`);
         } else {
             console.log("Data source created for", JSON.stringify(options.source));
         }
-        const target = createStore<IIndexPage>(options.target);
+        const target = await createStore<IIndexPage>(options.target);
         if (!target) {
             throw new Error(`Could not create index target from ${JSON.stringify(options.target)}`);
         } else {
@@ -44,16 +42,19 @@ export default class Nickel {
     }
 }
 
-function createStore<TDoc>(options: ICreateStoreOptions):
-        IDataStore<TDoc> | null {
+async function createStore<TDoc>(options: ICreateStoreOptions):
+        Promise<IDataStore<TDoc> | null> {
     if (options && options.location && typeof options.location === "string") {
+        const S3Store = (await import("./S3Store")).default;
         const s3Options = S3Store.parseOptions(options); // { bucket: location, awsCredentials: options.credentials }
         if (s3Options != null) {
             return new S3Store<TDoc>(s3Options);
-        }
-        const filestoreOptions = FileStore.parseOptions(options);
-        if (filestoreOptions != null) {
-            return new FileStore<TDoc>(filestoreOptions);
+        } else {
+            const FileStore = (await import("./FileStore")).default;
+            const filestoreOptions = FileStore.parseOptions(options);
+            if (filestoreOptions != null) {
+                return new FileStore<TDoc>(filestoreOptions);
+            }
         }
     }
     return null;

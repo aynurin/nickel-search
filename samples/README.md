@@ -4,7 +4,7 @@ This folder contains examples of using the library.
 
 ## TODO
 
-1. Learn to remove the CF stack retaining S3 buckets. Or take the S3 buckets out of the cloudformation.
+1. Remove the CF stack retaining S3 buckets. Or take the S3 buckets out of the cloudformation.
 
 ## Local index
 
