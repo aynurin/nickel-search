@@ -1,8 +1,8 @@
 import IDataStore from "./components/IDataStore";
 import ITransform from "./components/ITransform";
+import SimpleTokenizer from "./components/SimpleTokenizer";
 
 import SearchTransform from "./SearchTransform";
-import SimpleTokenizer from "./SimpleTokenizer";
 
 import IIndexerOptions from "./model/IIndexerOptions";
 import IIndexPage from "./model/IIndexPage";
@@ -10,7 +10,7 @@ import ISearchable from "./model/ISearchable";
 
 import IndexRecord from "./IndexRecord";
 
-import { BasePrefixBuffer, LocalFilePrefixBuilder } from "./PrefixBuffer";
+import { BasePrefixBuffer } from "./PrefixBuffer";
 
 export default class NickelIndex<TDoc> {
     private options: IIndexerOptions<TDoc>;

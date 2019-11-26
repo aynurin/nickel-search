@@ -2,7 +2,7 @@
 import fs from "fs";
 import path from "path";
 
-import * as ostream from "./ObjectStreams";
+import * as ostream from "./components/ObjectStreams";
 
 import IndexRecord from "./IndexRecord";
 import * as indexModel from "./IndexRecord";

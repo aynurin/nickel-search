@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import * as ostream from "../ObjectStreams";
+import * as ostream from "../components/ObjectStreams";
 
 it("can write one object", () => {
     const original = {

@@ -1,5 +1,3 @@
-import { TempDir } from "./Utils";
-
 import ICreateStoreOptions from "./model/ICreateStoreOptions";
 import IIndexPage from "./model/IIndexPage";
 import ISearchable from "./model/ISearchable";
@@ -36,6 +34,7 @@ export default class Nickel {
         } else {
             console.log("Index store created for", JSON.stringify(options.target));
         }
+        const TempDir = (await import("./components/TempDir")).TempDir;
         const tempDir = new TempDir();
         const prefixBuilder = new LocalFilePrefixBuilder(tempDir.toString());
         return new NickelIndex(options, source, target, prefixBuilder);

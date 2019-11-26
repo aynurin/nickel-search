@@ -2,7 +2,7 @@ import walk from "dir-walker-gen";
 import _fs from "fs";
 import path from "path";
 import { promisify } from "util";
-import { mkdirsSync } from "./Utils";
+import { mkdirsSync } from "./components/FSUtils";
 
 import IDataStore from "./components/IDataStore";
 import ICreateStoreOptions from "./model/ICreateStoreOptions";

@@ -1,7 +1,8 @@
 
+import { using } from "../components/IDisposable";
+import { TempDir } from "../components/TempDir";
 import IndexRecord from "../IndexRecord";
 import * as builders from "../PrefixBuffer";
-import * as utils from "../Utils";
 
 const sampleData = [{
     docs: ["1", "2", "3", "4", "5", "6", "7"],
@@ -81,14 +82,14 @@ it("can list all prefixes from memory", async () => {
 });
 
 it("can store prefixes in file", async () => {
-    await utils.using(new utils.TempDir(), async (path) => {
+    await using(new TempDir(), async (path) => {
         const builder = new builders.LocalFilePrefixBuilder(path.toString());
         await canStorePrefixes(builder);
     });
 });
 
 it("can list all prefixes from files", async () => {
-    await utils.using(new utils.TempDir(), async (path) => {
+    await using(new TempDir(), async (path) => {
         const builder = new builders.LocalFilePrefixBuilder(path.toString());
         await canListAllPrefixes(builder);
     });

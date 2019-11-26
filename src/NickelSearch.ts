@@ -1,11 +1,10 @@
-import IDataStore from "./components/IDataStore";
 
+import IDataStore from "./components/IDataStore";
+import IWordTokenizer from "./components/IWordTokenizer";
+import SimpleTokenizer from "./components/SimpleTokenizer";
+import IndexRecord from "./IndexRecord";
 import IIndexPage from "./model/IIndexPage";
 import ISearchOptions from "./model/ISearchOptions";
-
-import IWordTokenizer from "./components/IWordTokenizer";
-import IndexRecord from "./IndexRecord";
-import SimpleTokenizer from "./SimpleTokenizer";
 
 export default class NickelSearch {
     private options: ISearchOptions;
