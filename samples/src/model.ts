@@ -39,7 +39,7 @@ export default class IndexerOptions implements IIndexerOptions<IDataModel> {
 
     public getSearchedFields(s3Uri: string, document: IDataModel) {
         return {
-            Title: document.title,
+            title: document.title,
         };
     }
 }
