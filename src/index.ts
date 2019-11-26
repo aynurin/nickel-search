@@ -10,6 +10,8 @@ import NickelSearch from "./NickelSearch";
 
 import IDataStore from "./components/IDataStore";
 
+import { getTempDir } from "./components/TempDir";
+
 import { LocalFilePrefixBuilder, RamPrefixBuffer } from "./PrefixBuffer";
 
 export default class Nickel {
@@ -34,9 +36,8 @@ export default class Nickel {
         } else {
             console.log("Index store created for", JSON.stringify(options.target));
         }
-        const TempDir = (await import("./components/TempDir")).TempDir;
-        const tempDir = new TempDir();
-        const prefixBuilder = new LocalFilePrefixBuilder(tempDir.toString());
+        const tempDir = await getTempDir();
+        const prefixBuilder = new LocalFilePrefixBuilder(tempDir);
         return new NickelIndex(options, source, target, prefixBuilder);
     }
 }

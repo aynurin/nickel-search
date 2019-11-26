@@ -1,29 +1,36 @@
-import * as uuid from "node-uuid";
-import os from "os";
-import path from "path";
-import rimraf from "rimraf";
-import { mkdirsSync } from "./FSUtils";
-import IDisposable from "./IDisposable";
+import uuidv4 from "uuid/v4";
 
-export class TempDir implements IDisposable {
-    public path: string;
-    constructor() {
-        this.path = path.join(os.tmpdir(), uuid.v4() + "/");
-        mkdirsSync(this.path);
-    }
-    public toString() {
-        return this.path;
-    }
-    public async dispose(): Promise<void> {
-        // return Promise.resolve();
-        return new Promise((resolve, reject) => {
-            rimraf(this.path, (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
+export async function getTempDir(): Promise<string> {
+    const os = await import("os");
+    const path = await import("path");
+    const fs = await import("fs");
+    const tempDirPath = path.join(os.tmpdir(), uuidv4());
+    await new Promise((resolve, reject) => {
+        fs.mkdir(tempDirPath, (err) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
         });
+    });
+    return tempDirPath;
+}
+
+export default async function withTempDir(handler: (tempDirPath: string) => PromiseLike<any>|any) {
+    const tempDirPath = await getTempDir();
+    const output = handler(tempDirPath);
+    if (typeof output.then === "function") {
+        await output;
     }
+    const rimraf = (await import("rimraf")).default;
+    return new Promise((resolve, reject) => {
+        rimraf(tempDirPath, (err) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(output);
+            }
+        });
+    });
 }
