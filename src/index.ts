@@ -12,8 +12,6 @@ import IDataStore from "./components/IDataStore";
 
 import { getTempDir } from "./components/TempDir";
 
-import { LocalFilePrefixBuilder, RamPrefixBuffer } from "./PrefixBuffer";
-
 export default class Nickel {
     public static async searcher(options: ISearchOptions): Promise<NickelSearch> {
         const source = await createStore<IIndexPage>(options.source);
@@ -36,6 +34,7 @@ export default class Nickel {
         } else {
             console.log("Index store created for", JSON.stringify(options.target));
         }
+        const LocalFilePrefixBuilder = (await import("./PrefixBuffer")).LocalFilePrefixBuilder;
         const tempDir = await getTempDir();
         const prefixBuilder = new LocalFilePrefixBuilder(tempDir);
         return new NickelIndex(options, source, target, prefixBuilder);
