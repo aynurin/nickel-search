@@ -8,8 +8,8 @@
         "serverless",
         "autocomplete"
     ],
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
+    "main": "lib/main.js",
+    "types": "lib/main.d.ts",
     "files": [
         "lib/**/*",
         "LICENSE"
@@ -23,12 +23,12 @@
         "preversion": "npm run lint",
         "version": "git add -A src",
         "postversion": "git push && git push --tags",
-        "samples:build": "npm run build && tsc -p ./samples/tsconfig.json",
+        "samples:build": "npm run build && tsc -p ./samples/tsconfig.json && npm run test",
         "samples:deploy": "npm run samples:build && node ./samples/dist/deploy.js",
-        "samples:index": "node ./samples/dist/indexer.js",
-        "samples:search": "node ./samples/dist/search.js",
-        "profile:index": "node --prof ./samples/dist/indexer.js",
-        "profile:process": "node --prof-process"
+        "samples:index": "npm run samples:build && node ./samples/dist/indexer.js",
+        "samples:search": "npm run samples:build && node ./samples/dist/search.js",
+        "profile:index": "npm run samples:build && node --prof ./samples/dist/indexer.js",
+        "profile:process": "npm run samples:build && node --prof-process"
     },
     "repository": {
         "type": "git",
@@ -55,6 +55,6 @@
         "commander": "^2.20.0",
         "dir-walker-gen": "^1.0.1",
         "rimraf": "^2.6.3",
-        "node-uuid": "^1.4.8"
+        "uuid": "^3.3.3"
     }
 }

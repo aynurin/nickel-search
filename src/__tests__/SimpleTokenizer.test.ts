@@ -1,4 +1,4 @@
-import SimpleTokenizer from "../SimpleTokenizer";
+import SimpleTokenizer from "../components/SimpleTokenizer";
 
 it("can tokenize one word", () => {
     const given = "acierates";

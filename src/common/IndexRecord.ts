@@ -1,6 +1,6 @@
 
 import crypto from "crypto";
-import ISearchable from "./model/ISearchable";
+import ISearchable from "./ISearchable";
 
 export default class IndexRecord {
     public static createFromSearchQuery(query: string, maxShards: number): IndexRecord {

@@ -1,0 +1,9 @@
+@startuml "Component model"
+[main.ts]
+[main.ts] -down-> [search]
+[main.ts] -down-> [index]
+[main.ts] -down-> [common]
+[search] -down-> [common]
+[index] -down-> [common]
+[components]
+@enduml

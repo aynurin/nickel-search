@@ -1,4 +1,4 @@
-import IWordTokenizer from "./components/IWordTokenizer";
+import IWordTokenizer from "../common/IWordTokenizer";
 
 export default class SimpleTokenizer implements IWordTokenizer {
     public tokenize(value: string): string[] {

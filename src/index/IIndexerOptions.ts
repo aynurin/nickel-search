@@ -1,16 +1,17 @@
 
-import ICreateStoreOptions from "./ICreateStoreOptions";
-import ISearchable from "./ISearchable";
+import IDataStore from "../common/IDataStore";
+import IIndexPage from "../common/IIndexPage";
+import ISearchable from "../common/ISearchable";
 
 export default interface IIndexerOptions<TDoc> {
     /**
      * Data source options
      */
-    source: ICreateStoreOptions;
+    source: IDataStore<TDoc>;
     /**
      * Index store options
      */
-    target: ICreateStoreOptions;
+    indexStore: IDataStore<IIndexPage>;
     /**
      * How often to save intermediate results.
      */

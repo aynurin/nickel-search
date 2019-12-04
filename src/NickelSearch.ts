@@ -1,21 +1,40 @@
-import IDataStore from "./components/IDataStore";
+import IDataStore from "./common/IDataStore";
+import IIndexPage from "./common/IIndexPage";
+import IndexRecord from "./common/IndexRecord";
+import IWordTokenizer from "./common/IWordTokenizer";
 
-import IIndexPage from "./model/IIndexPage";
-import ISearchOptions from "./model/ISearchOptions";
+/** Usage example: see /samples/src/search.ts
+ */
+/** Usage example:
+ * import { S3Store, SimpleTokenizer } from "nickel-search/components/S3Store"
+ * import NickelSearch from "nickel-search/Search"
+ *
+ * const s3Options = {
+ *      bucket: "s3://my-bucket-name/",
+ *      credentials: new AWS.SharedIniFileCredentials({profile: "my-aws-profile-name"}),
+ * }
+ *
+ * const nickel = new NickelSearch(
+ *      { indexShards: 1000 },
+ *      new S3Store(s3Options),
+ *      new SimpleTokenizer());
+ *
+ * await nickel.search("term");
+ */
 
-import IWordTokenizer from "./components/IWordTokenizer";
-import IndexRecord from "./IndexRecord";
-import SimpleTokenizer from "./SimpleTokenizer";
+export interface ISearchOptions {
+    indexShards: number;
+}
 
 export default class NickelSearch {
     private options: ISearchOptions;
     private source: IDataStore<IIndexPage>;
     private tokenizer: IWordTokenizer;
 
-    constructor(options: ISearchOptions, source: IDataStore<IIndexPage>) {
+    constructor(options: ISearchOptions, source: IDataStore<IIndexPage>, tokenizer: IWordTokenizer) {
         this.options = options;
         this.source = source;
-        this.tokenizer = new SimpleTokenizer();
+        this.tokenizer = tokenizer;
     }
 
     public async search(term: string): Promise<IIndexPage | null> {

@@ -1,8 +1,7 @@
-import ITransform from "./components/ITransform";
-import IWordTokenizer from "./components/IWordTokenizer";
-import ISearchable from "./model/ISearchable";
+import ISearchable from "../common/ISearchable";
+import IWordTokenizer from "../common/IWordTokenizer";
 
-export default class SearchTransform implements ITransform<any, ISearchable[]> {
+export default class SearchTransform {
     private tokenizer: IWordTokenizer;
 
     constructor(tokenizer: IWordTokenizer) {

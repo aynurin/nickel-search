@@ -2,10 +2,9 @@ import walk from "dir-walker-gen";
 import _fs from "fs";
 import path from "path";
 import { promisify } from "util";
-import { mkdirsSync } from "./Utils";
 
-import IDataStore from "./components/IDataStore";
-import ICreateStoreOptions from "./model/ICreateStoreOptions";
+import ICreateStoreOptions from "../common/ICreateStoreOptions";
+import IDataStore from "../common/IDataStore";
 
 const fs = {
     mkdir: promisify(_fs.mkdir),
@@ -78,5 +77,15 @@ export default class FileStore<TDoc> implements IDataStore<TDoc> {
         const fullPath = path.join(this.rootDir, key);
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
         await fs.writeFile(fullPath, JSON.stringify(item));
+    }
+}
+
+function mkdirsSync(dirPath: _fs.PathLike, options?: string | number | _fs.MakeDirectoryOptions | null | undefined) {
+    try {
+        _fs.mkdirSync(dirPath, options);
+    } catch (err) {
+        if (err.code !== "EEXIST") {
+            throw err;
+        }
     }
 }

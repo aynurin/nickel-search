@@ -1,7 +1,10 @@
 
-import IndexRecord from "../IndexRecord";
-import * as builders from "../PrefixBuffer";
-import * as utils from "../Utils";
+import IndexRecord from "../common/IndexRecord";
+
+import BasePrefixBuffer, { IndexRecordSet } from "../index/PrefixBuffer";
+
+import RamPrefixBuffer from "../components/RamPrefixBuffer";
+import LocalFilePrefixBuilder from "../components/TmpPrefixBuffer";
 
 const sampleData = [{
     docs: ["1", "2", "3", "4", "5", "6", "7"],
@@ -14,7 +17,7 @@ const sampleData = [{
     key: "ad",
 }];
 
-function * getIndexRecords(): IterableIterator<IndexRecord> {
+function* getIndexRecords(): IterableIterator<IndexRecord> {
     for (const prefix of sampleData) {
         for (const doc of prefix.docs) {
             yield new IndexRecord({
@@ -27,14 +30,14 @@ function * getIndexRecords(): IterableIterator<IndexRecord> {
     }
 }
 
-async function downloadAllData(builder: builders.BasePrefixBuffer):
-    Promise<builders.IndexRecordSet[]> {
-    const allIndex: builders.IndexRecordSet[] = [];
+async function downloadAllData(builder: BasePrefixBuffer):
+    Promise<IndexRecordSet[]> {
+    const allIndex: IndexRecordSet[] = [];
     await builder.forEachPrefix((entries) => Promise.resolve(allIndex.push(entries)), 100);
     return allIndex;
 }
 
-async function canStorePrefixes(builder: builders.BasePrefixBuffer): Promise<void> {
+async function canStorePrefixes(builder: BasePrefixBuffer): Promise<void> {
     const indexRecords = Array.from(getIndexRecords());
     await Promise.all(indexRecords.map((idx) => builder.add(idx)));
     const ab = await builder.load(indexRecords[0].safekey);
@@ -48,7 +51,7 @@ async function canStorePrefixes(builder: builders.BasePrefixBuffer): Promise<voi
     }
 }
 
-async function canListAllPrefixes(builder: builders.BasePrefixBuffer): Promise<void> {
+async function canListAllPrefixes(builder: BasePrefixBuffer): Promise<void> {
     const indexRecords = Array.from(getIndexRecords());
     await Promise.all(indexRecords.map((idx) => builder.add(idx)));
 
@@ -68,28 +71,25 @@ async function canListAllPrefixes(builder: builders.BasePrefixBuffer): Promise<v
                 expect(prefixDocs).toContain(originalDoc);
             }
         }
-    }}
+    }
+}
 
 it("can store prefixes in memory", async () => {
-    const builder = new builders.RamPrefixBuffer();
+    const builder = new RamPrefixBuffer();
     await canStorePrefixes(builder);
 });
 
 it("can list all prefixes from memory", async () => {
-    const builder = new builders.RamPrefixBuffer();
+    const builder = new RamPrefixBuffer();
     await canListAllPrefixes(builder);
 });
 
 it("can store prefixes in file", async () => {
-    await utils.using(new utils.TempDir(), async (path) => {
-        const builder = new builders.LocalFilePrefixBuilder(path.toString());
-        await canStorePrefixes(builder);
-    });
+    const builder = new LocalFilePrefixBuilder();
+    await canStorePrefixes(builder);
 });
 
 it("can list all prefixes from files", async () => {
-    await utils.using(new utils.TempDir(), async (path) => {
-        const builder = new builders.LocalFilePrefixBuilder(path.toString());
-        await canListAllPrefixes(builder);
-    });
+    const builder = new LocalFilePrefixBuilder();
+    await canListAllPrefixes(builder);
 });

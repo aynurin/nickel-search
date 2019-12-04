@@ -1,4 +1,4 @@
-import IndexRecord from "../IndexRecord";
+import IndexRecord from "../common/IndexRecord";
 
 it("can store original key", () => {
     const original = "g?\\c\"\u0019/123!_-";

@@ -1,5 +1,5 @@
-import SearchTransform from "../SearchTransform";
-import SimpleTokenizer from "../SimpleTokenizer";
+import SimpleTokenizer from "../components/SimpleTokenizer";
+import SearchTransform from "../index/SearchTransform";
 
 it("can get all prefixes", () => {
     const given = "acierates";

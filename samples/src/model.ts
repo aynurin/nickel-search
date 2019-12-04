@@ -1,5 +1,5 @@
 
-import { ICreateStoreOptions, IIndexerOptions, ISearchable } from "../../lib";
+import { IDataStore, IIndexerOptions, IIndexPage, ISearchable } from "../../";
 
 export interface IDataModel {
     key: string;
@@ -14,16 +14,11 @@ export interface IDataModel {
 }
 
 export default class IndexerOptions implements IIndexerOptions<IDataModel> {
-    public source: ICreateStoreOptions;
-    public target: ICreateStoreOptions;
+    public source: IDataStore<IDataModel>;
+    public indexStore: IDataStore<IIndexPage>;
     public saveThreshold: number = 100;
     public resultsPageSize: number = 100;
     public indexShards: number = 1000;
-
-    constructor(source: ICreateStoreOptions, target: ICreateStoreOptions) {
-        this.source = source;
-        this.target = target;
-    }
 
     public sort(a: ISearchable, b: ISearchable) {
         let sort = a.weight - b.weight;
@@ -39,7 +34,7 @@ export default class IndexerOptions implements IIndexerOptions<IDataModel> {
 
     public getSearchedFields(s3Uri: string, document: IDataModel) {
         return {
-            Title: document.title,
+            title: document.title,
         };
     }
 }

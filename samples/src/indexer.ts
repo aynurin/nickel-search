@@ -2,9 +2,9 @@
 import AWS from "aws-sdk";
 import commander from "commander";
 
-import nickel from "../../lib";
+import nickel, { ICreateStoreOptions } from "../../";
 
-import IndexerOptions from "./model";
+import IndexerOptions, { IDataModel } from "./model";
 
 import defaultSource from "./source";
 import defaultIndex from "./target";
@@ -15,8 +15,8 @@ commander
     .option("--index <index>", "Index location")
     .parse(process.argv);
 
-let source: any;
-let target: any;
+let source: ICreateStoreOptions;
+let target: ICreateStoreOptions;
 
 if (commander.data) {
     source = {
@@ -26,7 +26,7 @@ if (commander.data) {
         source.credentials = new AWS.SharedIniFileCredentials({profile: commander.awsProfile});
     }
 } else if (defaultSource) {
-    source = defaultSource;
+    source = Object.assign(defaultSource, { location: null });
 }
 
 if (commander.index) {
@@ -34,11 +34,14 @@ if (commander.index) {
         location: commander.index,
     };
     if (commander.awsProfile) {
-        source.credentials = new AWS.SharedIniFileCredentials({profile: commander.awsProfile});
+        target.credentials = new AWS.SharedIniFileCredentials({profile: commander.awsProfile});
     }
 } else if (defaultIndex) {
-    target = defaultIndex;
+    target = Object.assign(defaultIndex, { location: null });
 }
 
-const options = new IndexerOptions(source, target);
-nickel.indexer(options).run();
+const options = new IndexerOptions();
+options.source = nickel.createDataStore<IDataModel>(source);
+options.indexStore = nickel.createIndexStore(target);
+
+nickel.indexer(options, false).run();

@@ -1,5 +1,5 @@
-import IDataStore from "./components/IDataStore";
-import ICreateStoreOptions from "./model/ICreateStoreOptions";
+import ICreateStoreOptions from "../common/ICreateStoreOptions";
+import IDataStore from "../common/IDataStore";
 
 import AWS from "aws-sdk";
 
@@ -10,7 +10,7 @@ export interface IS3StoreOptions {
     credentials?: AWS.Credentials;
 }
 
-export default class S3Source<TDoc> implements IDataStore<TDoc> {
+export default class S3Store<TDoc> implements IDataStore<TDoc> {
     public static parseOptions(options: ICreateStoreOptions): IS3StoreOptions | null {
         const match = options.location.match(S3_LOCATION_RX);
         if (match && match.groups) {

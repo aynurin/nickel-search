@@ -1,37 +1,35 @@
-import IDataStore from "./components/IDataStore";
-import ITransform from "./components/ITransform";
+import IDataStore from "./common/IDataStore";
+import IIndexPage from "./common/IIndexPage";
+import IndexRecord from "./common/IndexRecord";
+import ISearchable from "./common/ISearchable";
+import IWordTokenizer from "./common/IWordTokenizer";
 
-import SearchTransform from "./SearchTransform";
-import SimpleTokenizer from "./SimpleTokenizer";
-import * as Utils from "./Utils";
+import IIndexerOptions from "./index/IIndexerOptions";
+import BasePrefixBuffer from "./index/PrefixBuffer";
+import SearchTransform from "./index/SearchTransform";
 
-import IIndexerOptions from "./model/IIndexerOptions";
-import IIndexPage from "./model/IIndexPage";
-import ISearchable from "./model/ISearchable";
-
-import IndexRecord from "./IndexRecord";
-
-import { BasePrefixBuffer, LocalFilePrefixBuilder } from "./PrefixBuffer";
+/** Usage example: see /samples/src/indexer.ts
+ */
 
 export default class NickelIndex<TDoc> {
     private options: IIndexerOptions<TDoc>;
     private source: IDataStore<TDoc>;
-    private searchTransform: ITransform<any, ISearchable[]>;
+    private searchTransform: SearchTransform;
     private counter: number;
     private indexStore: IDataStore<IIndexPage>;
     private prefixBuffer: BasePrefixBuffer;
     private finishedPrefixCount: number = 0;
 
     constructor(options: IIndexerOptions<TDoc>,
-                source: IDataStore<TDoc>, target: IDataStore<IIndexPage>,
-                prefixBuffer: BasePrefixBuffer) {
+                prefixBuffer: BasePrefixBuffer,
+                tokenizer: IWordTokenizer) {
         if (options.resultsPageSize < 1) {
             options.resultsPageSize = 1;
         }
         this.options = options;
-        this.source = source;
-        this.indexStore = target;
-        this.searchTransform = new SearchTransform(new SimpleTokenizer());
+        this.source = options.source;
+        this.indexStore = options.indexStore;
+        this.searchTransform = new SearchTransform(tokenizer);
         this.counter = 0;
         this.prefixBuffer = prefixBuffer;
     }
@@ -61,7 +59,7 @@ export default class NickelIndex<TDoc> {
         // sort (this.options.sort)
         // and start saving into final storage (see indexStore: IDataStore<IIndexPage>)
         console.log("NickelIndex: waiting for saveIndex...");
-        await this.prefixBuffer.forEachPrefix(async (index) => await this.saveIndex(index), 100);
+        await this.prefixBuffer.forEachPrefix(async (index: IndexRecord[]) => await this.saveIndex(index), 100);
         this.reportProgress("All done");
     }
 
@@ -88,11 +86,11 @@ export default class NickelIndex<TDoc> {
                         message += " of " + totalItems;
                     }
                     console.log(message);
-                    Utils.memusage();
+                    memusage();
                 }
             } else {
                 console.log(message);
-                Utils.memusage();
+                memusage();
             }
         }
     }
@@ -130,4 +128,17 @@ export default class NickelIndex<TDoc> {
         this.finishedPrefixCount++;
         this.reportProgress("sorting", index[0].key, index, this.finishedPrefixCount);
     }
+}
+
+function memusage() {
+    const used = process.memoryUsage();
+    console.debug(`MEM (${process.pid}):`,
+        mem("ext", used.external),
+        mem("het", used.heapTotal),
+        mem("heu", used.heapUsed),
+        mem("rss", used.rss));
+}
+
+function mem(title: string, val: number): string {
+    return `${title} ${(Math.round(val / 1024 / 1024 * 100) / 100)} MB`.padEnd(8 + title.length, " ");
 }

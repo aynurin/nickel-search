@@ -1,89 +1,22 @@
-
 import fs from "fs";
+import os from "os";
 import path from "path";
+import uuidv4 from "uuid/v4";
 
-import * as ostream from "./ObjectStreams";
+import * as ostream from "../index/ObjectStreams";
+import BasePrefixBuffer, { IndexRecordSet } from "../index/PrefixBuffer";
 
-import IndexRecord from "./IndexRecord";
-import * as indexModel from "./IndexRecord";
-import ISearchable from "./model/ISearchable";
+import IndexRecord from "../common/IndexRecord";
+import * as indexModel from "../common/IndexRecord";
+import ISearchable from "../common/ISearchable";
 
-export abstract class BasePrefixBuffer {
-    public addRequests: number = 0;
-    public addCompleted: number = 0;
-
-    public abstract add(record: IndexRecord): Promise<void>;
-    public abstract load(safeKey: indexModel.recordSafeKey): Promise<IndexRecordSet>;
-    public abstract forEachPrefix<T>(
-        fn: (index: IndexRecordSet) => Promise<T>,
-        maxParallelJobs: number): Promise<T[]>;
-
-    protected async batchForEach<TIn, TOut>(
-        inputCollection: TIn[],
-        convert: (input: TIn) => Promise<TOut>,
-        maxJobsInBatch: number): Promise<TOut[]> {
-        const waiters: Array<Promise<TOut>> = [];
-        let results: TOut[] = [];
-        for (const item of inputCollection) {
-            if (maxJobsInBatch <= 1) {
-                results.push(await convert(item));
-            } else {
-                const oneWaiter = convert(item);
-                waiters.push(oneWaiter);
-                if (waiters.length >= maxJobsInBatch) {
-                    results = results.concat(await Promise.all(waiters));
-                    waiters.length = 0;
-                }
-            }
-        }
-        results = results.concat(await Promise.all(waiters));
-        return results;
-    }
-}
-
-// tslint:disable-next-line: max-classes-per-file
-export class RamPrefixBuffer extends BasePrefixBuffer {
-    private indexDefinitions: Map<string, IndexRecordSet> = new Map();
-
-    public add(record: IndexRecord): Promise<void> {
-        this.getEntryContainer(record).push(record);
-        return Promise.resolve();
-    }
-
-    public load(safeKey: indexModel.recordSafeKey): Promise<IndexRecordSet> {
-        return Promise.resolve(this.getEntryContainer(undefined, safeKey));
-    }
-
-    public async forEachPrefix<T>(
-        fn: (index: IndexRecordSet) => Promise<T>,
-        maxParallelJobs: number): Promise<T[]> {
-        return await this.batchForEach(Array.from(this.indexDefinitions.values()), fn, maxParallelJobs);
-    }
-
-    private getEntryContainer(record?: IndexRecord, safeKey?: indexModel.recordSafeKey):
-                              IndexRecordSet {
-        if (record == null && safeKey == null) {
-            throw new Error("Invalid arguments: either record or safeKey should be defined");
-        }
-        // indexSafeKey cannot be undefined after the previous check
-        const indexSafeKey = record == null ? safeKey! : record.safekey;
-        let definition = this.indexDefinitions.get(indexSafeKey);
-        if (!definition) {
-            definition = new IndexRecordSet(indexSafeKey);
-            this.indexDefinitions.set(indexSafeKey, definition);
-        }
-        return definition;
-    }
-}
-
-// tslint:disable-next-line: max-classes-per-file
-export class LocalFilePrefixBuilder extends BasePrefixBuffer {
+export default class TmpPrefixBuffer extends BasePrefixBuffer {
     public readonly indexDefinitions: Map<string, IndexRecord> = new Map();
-    private readonly rootPath: string;
+    private rootPath: string;
 
-    constructor(rootPath: string) {
+    constructor() {
         super();
-        this.rootPath = rootPath;
+        this.rootPath = getTempDirSync();
     }
 
     public async add(record: IndexRecord): Promise<void> {
@@ -198,12 +131,8 @@ export class LocalFilePrefixBuilder extends BasePrefixBuffer {
     }
 }
 
-// tslint:disable-next-line: max-classes-per-file
-export class IndexRecordSet extends Array<IndexRecord> {
-    public safeKey: indexModel.recordSafeKey;
-
-    constructor(safeKey: indexModel.recordSafeKey) {
-        super();
-        this.safeKey = safeKey;
-    }
+function getTempDirSync(): string {
+    const tempDirPath = path.join(os.tmpdir(), uuidv4());
+    fs.mkdirSync(tempDirPath);
+    return tempDirPath;
 }
