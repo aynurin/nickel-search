@@ -8,12 +8,13 @@ import { ISearchOptions } from "./NickelSearch";
 import NickelIndex from "./NickelIndex";
 import NickelSearch from "./NickelSearch";
 
-import IDataStore from "./common/IDataStore";
-import FileStore from "./components/FileStore";
 import RamPrefixBuffer from "./components/RamPrefixBuffer";
-import S3Store from "./components/S3Store";
 import SimpleTokenizer from "./components/SimpleTokenizer";
 import TmpPrefixBuffer from "./components/TmpPrefixBuffer";
+
+import IDataStore from "./common/IDataStore";
+import FileStore from "./FileStore";
+import S3Store from "./S3Store";
 
 import BasePrefixBuffer from "./index/PrefixBuffer";
 

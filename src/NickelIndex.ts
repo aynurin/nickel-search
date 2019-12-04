@@ -142,3 +142,5 @@ function memusage() {
 function mem(title: string, val: number): string {
     return `${title} ${(Math.round(val / 1024 / 1024 * 100) / 100)} MB`.padEnd(8 + title.length, " ");
 }
+
+export { IDataStore, IIndexerOptions, ISearchable, IIndexPage };

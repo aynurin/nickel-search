@@ -61,3 +61,5 @@ export default class NickelSearch {
         }
     }
 }
+
+export { IDataStore, IIndexPage };

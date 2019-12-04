@@ -3,8 +3,8 @@ import _fs from "fs";
 import path from "path";
 import { promisify } from "util";
 
-import ICreateStoreOptions from "../common/ICreateStoreOptions";
-import IDataStore from "../common/IDataStore";
+import ICreateStoreOptions from "./common/ICreateStoreOptions";
+import IDataStore from "./common/IDataStore";
 
 const fs = {
     mkdir: promisify(_fs.mkdir),

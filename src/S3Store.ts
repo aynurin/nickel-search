@@ -1,5 +1,5 @@
-import ICreateStoreOptions from "../common/ICreateStoreOptions";
-import IDataStore from "../common/IDataStore";
+import ICreateStoreOptions from "./common/ICreateStoreOptions";
+import IDataStore from "./common/IDataStore";
 
 import AWS from "aws-sdk";
 
