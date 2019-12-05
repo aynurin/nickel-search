@@ -6,6 +6,8 @@ import { promisify } from "util";
 import ICreateStoreOptions from "./common/ICreateStoreOptions";
 import IDataStore from "./common/IDataStore";
 
+import EntryNotFoundError from "./EntryNotFoundError";
+
 const fs = {
     mkdir: promisify(_fs.mkdir),
     readFile: promisify(_fs.readFile),
@@ -42,7 +44,9 @@ export default class FileStore<TDoc> implements IDataStore<TDoc> {
             folders: [this.rootDir],
         };
 
-        for (const file of walk(options)) {
+        const allFiles = walk(options);
+
+        for (const file of allFiles) {
             yield {
                 document: await this.readItem(file),
                 key: file,
@@ -62,13 +66,13 @@ export default class FileStore<TDoc> implements IDataStore<TDoc> {
             if (data) {
                 return JSON.parse(data);
             } else {
-                throw new Error(`Item is empty at ${fullPath}`);
+                throw new EntryNotFoundError(fullPath);
             }
         } catch (e) {
             if (e.code !== "ENOENT") {
                 throw e;
             } else {
-                throw new Error(`Item is empty at ${fullPath}`);
+                throw new EntryNotFoundError(fullPath);
             }
         }
     }

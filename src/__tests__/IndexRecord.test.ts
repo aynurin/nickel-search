@@ -21,7 +21,7 @@ it("can create shard for maxShards = 100", () => {
         value: original,
         weight: 1,
     }, 100);
-    const expected = "1u";
+    const expected = "2a";
 
     expect(received.shard).toEqual(expected);
 });
@@ -34,7 +34,7 @@ it("can create shard for maxShards = 1000", () => {
         value: original,
         weight: 1,
     }, 1000);
-    const expected = "fq";
+    const expected = "oi";
 
     expect(received.shard).toEqual(expected);
 });
@@ -60,7 +60,7 @@ it("can create safekey", () => {
         value: original,
         weight: 1,
     }, 100);
-    const expected = "5dunx2gc123_";
+    const expected = "jqvh4agc123_";
 
     expect(received.safekey).toEqual(expected);
 });
@@ -73,7 +73,7 @@ it("can create page name", () => {
         value: original,
         weight: 1,
     }, 100);
-    const expected = "5dunx2gc123_-3.json";
+    const expected = "jqvh4agc123_-3.json";
 
     expect(received.getPageName(3)).toEqual(expected);
 });
@@ -86,7 +86,7 @@ it("can create page uri", () => {
         value: original,
         weight: 1,
     }, 100);
-    const expected = "1u/5dunx2gc123_-0.json";
+    const expected = "2a/jqvh4agc123_-0.json";
 
     expect(received.getPageUri(0)).toEqual(expected);
 });

@@ -2,6 +2,7 @@ import IDataStore from "./common/IDataStore";
 import IIndexPage from "./common/IIndexPage";
 import IndexRecord from "./common/IndexRecord";
 import IWordTokenizer from "./common/IWordTokenizer";
+import EntryNotFoundError from "./EntryNotFoundError";
 
 /** Usage example: see /samples/src/search.ts
  */
@@ -54,10 +55,12 @@ export default class NickelSearch {
         } catch (e) {
             const hrend = process.hrtime(hrstart);
             console.debug(`Retrieving key ${pageKey} took: ${hrend[0]}s ${hrend[1] / 1000000}ms`);
-            if (e.code === "NoSuchKey") {
-                throw new Error(`Object with key ${pageKey} was not found`);
+            if (e instanceof EntryNotFoundError) {
+                console.warn(`Key not found: ${pageKey}`);
+                return null;
+            } else {
+                throw e;
             }
-            throw e;
         }
     }
 }

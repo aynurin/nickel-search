@@ -54,7 +54,8 @@ export default class NickelIndex<TDoc> {
             }
         }
         this.reportProgress("Indexing done. " +
-            `${this.prefixBuffer.addCompleted} of ${this.prefixBuffer.addRequests} docs added`);
+            `${this.prefixBuffer.addCompleted} of ${this.prefixBuffer.addRequests} entries from ` +
+            `${this.counter} documents added`);
         const waiters = new Array<Promise<void>>();
         // sort (this.options.sort)
         // and start saving into final storage (see indexStore: IDataStore<IIndexPage>)
@@ -86,11 +87,11 @@ export default class NickelIndex<TDoc> {
                         message += " of " + totalItems;
                     }
                     console.log(message);
-                    memusage();
+                    // memusage();
                 }
             } else {
                 console.log(message);
-                memusage();
+                // memusage();
             }
         }
     }
@@ -130,17 +131,17 @@ export default class NickelIndex<TDoc> {
     }
 }
 
-function memusage() {
-    const used = process.memoryUsage();
-    console.debug(`MEM (${process.pid}):`,
-        mem("ext", used.external),
-        mem("het", used.heapTotal),
-        mem("heu", used.heapUsed),
-        mem("rss", used.rss));
-}
+// function memusage() {
+//     const used = process.memoryUsage();
+//     console.debug(`MEM (${process.pid}):`,
+//         mem("ext", used.external),
+//         mem("het", used.heapTotal),
+//         mem("heu", used.heapUsed),
+//         mem("rss", used.rss));
+// }
 
-function mem(title: string, val: number): string {
-    return `${title} ${(Math.round(val / 1024 / 1024 * 100) / 100)} MB`.padEnd(8 + title.length, " ");
-}
+// function mem(title: string, val: number): string {
+//     return `${title} ${(Math.round(val / 1024 / 1024 * 100) / 100)} MB`.padEnd(8 + title.length, " ");
+// }
 
 export { IDataStore, IIndexerOptions, ISearchable, IIndexPage };

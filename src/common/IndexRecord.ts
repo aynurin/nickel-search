@@ -1,5 +1,3 @@
-
-import crypto from "crypto";
 import ISearchable from "./ISearchable";
 
 export default class IndexRecord {
@@ -22,7 +20,7 @@ export default class IndexRecord {
     constructor(searchable: ISearchable, maxShards: number) {
         this.searchable = searchable;
         this.key = searchable.value;
-        this.sha256 = sha256hash(this.key);
+        this.sha256 = stringHash(this.key);
         this.safekey = safeKey(this.key, this.sha256);
         this.maxShards = maxShards;
         this.shard = (this.sha256 % maxShards).toString(36);
@@ -51,19 +49,35 @@ export type recordSafeKey = string;
  */
 export type recordSha256 = number;
 /**
+ * An integer hash code of the recordKey.
+ */
+export type recordHashCode = number;
+/**
  * Shard name for this record. Based on the required number of shards.
  */
 export type recordShard = string;
 
-function sha256hash(arg: string): recordSha256 {
-    const hasher = crypto.createHash("sha256");
-    const digest = hasher.update(arg).digest();
-    let offset = 0;
+// function sha256hash(arg: string): recordSha256 {
+//     const hasher = crypto.createHash("sha256");
+//     const digest = hasher.update(arg).digest();
+//     let offset = 0;
+//     let hash = 0;
+//     while (offset < digest.byteLength) {
+//         // tslint:disable-next-line:no-bitwise
+//         hash ^= (isLittleEndian ? digest.readInt32LE(offset) : digest.readInt32BE(offset));
+//         offset += 32 / 8;
+//     }
+//     return Math.abs(hash);
+// }
+
+function stringHash(arg: string): recordHashCode {
     let hash = 0;
-    while (offset < digest.byteLength) {
-        // tslint:disable-next-line:no-bitwise
-        hash ^= (isLittleEndian ? digest.readInt32LE(offset) : digest.readInt32BE(offset));
-        offset += 32 / 8;
+    if (arg.length === 0) { return hash; }
+    for (let i = 0; i < arg.length; i++) {
+      // tslint:disable-next-line: no-bitwise
+      hash = ((hash << 5) - hash) + arg.charCodeAt(i);
+      // tslint:disable-next-line: no-bitwise
+      hash |= 0; // Convert to 32bit integer
     }
     return Math.abs(hash);
 }
@@ -72,14 +86,14 @@ function safeKey(key: recordKey, sha256: recordSha256): recordSafeKey {
     return sha256.toString(36) + key.replace(/[\W]*/gi, "");
 }
 
-let isLittleEndian = true;
+// let isLittleEndian = true;
 
-(() => {
-    // tslint:disable-next-line:max-line-length
-    // https://riptutorial.com/javascript/example/13317/little---big-endian-for-typed-arrays-when-using-bitwise-operators
-    const buf = new ArrayBuffer(4);
-    const buf8 = new Uint8ClampedArray(buf);
-    const data = new Uint32Array(buf);
-    data[0] = 0x0F000000;
-    isLittleEndian = buf8[0] !== 0x0f;
-})();
+// tslint:disable-next-line:max-line-length
+// https://riptutorial.com/javascript/example/13317/little---big-endian-for-typed-arrays-when-using-bitwise-operators
+// (() => {
+//     const buf = new ArrayBuffer(4);
+//     const buf8 = new Uint8ClampedArray(buf);
+//     const data = new Uint32Array(buf);
+//     data[0] = 0x0F000000;
+//     isLittleEndian = buf8[0] !== 0x0f;
+// })();

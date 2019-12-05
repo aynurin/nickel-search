@@ -2,6 +2,7 @@ import ICreateStoreOptions from "./common/ICreateStoreOptions";
 import IDataStore from "./common/IDataStore";
 
 import AWS from "aws-sdk";
+import EntryNotFoundError from "./EntryNotFoundError";
 
 const S3_LOCATION_RX = /s3:\/\/(?<bucket>[^\/$]+)\//;
 
@@ -79,11 +80,19 @@ export default class S3Store<TDoc> implements IDataStore<TDoc> {
             Bucket: this.bucketName, /* required */
             Key: key, /* required */
         };
-        const item = await this.s3.getObject(params).promise();
-        if (item.Body) {
-            return JSON.parse(item.Body.toString());
-        } else {
-            throw new Error(`Item is empty at ${key}`);
+        try {
+            const item = await this.s3.getObject(params).promise();
+            if (item.Body) {
+                return JSON.parse(item.Body.toString());
+            } else {
+                throw new EntryNotFoundError(key);
+            }
+        } catch (error) {
+            if (error.code === "NoSuchKey") {
+                throw new EntryNotFoundError(key);
+            } else {
+                throw error;
+            }
         }
     }
 
