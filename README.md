@@ -51,12 +51,6 @@ const options = {
     getSearchedFields: (s3Uri: string, document: MyBlogPost) => ({
         Title: document.Title,
     }),
-    // Report progress during indexing.
-    onProgress: (stage: string, key: string, document: IWordyWord, indexEntries: IIndexEntry[], counter: number) => {
-        if (counter % 100 === 0) {
-            console.log(`Blog posts processed: ${counter}`);
-        }
-    },
     // number of search results per page has to be set when creating the index
     resultsPageSize: 50,
     // save checkpoints every 100 changes to each hash value
@@ -64,21 +58,21 @@ const options = {
     // shards in the index store
     indexShards: 1000,
     // Implement to set search results sort order.
-    sort: (a: MyBlogPost, b: MyBlogPost) => {
-        let sort = bWeight - aWeight;
+    sort: (a: ISearchable, b: ISearchable) => {
+        let sort = a.weight - b.weight;
         if (sort === 0) {
-            sort = a.Title.localeCompare(b.Title);
+            sort = a.original.Title.localeCompare(b.original.Title);
         }
         return sort;
     },
     // Data source options
-    source: {
+    source: nickel.createDataStore<MyBlogPost>({
         location: "../sample-data/", // existing folder with JSON files matching MyBlogPost
-    },
+    }),
     // Index store options
-    target: {
+    indexStore: nickel.createIndexStore({
         location: "../sample-index/", // existing folder that will store the search index
-    },
+    }),
 };
 
 nickel.indexer(options).run();
@@ -91,16 +85,16 @@ Run the indexer. When it's done, run the search:
 ```typescript
 import nickel from "nickel-search";
 
-const ns = nickel.searcher({
-    indexShards: 1000,
-    source: {
-        location: "../sample-index/", // search index location
-    },
+const indexStore = nickel.createIndexStore({
+    location: "../sample-index/", // search index location
 });
 
-const searchRequest = 'nic';
-const searchResults = ns.search(searchRequest);
+const ns = nickel.searcher({ indexShards: 1000 }, indexStore);
+
+const searchResults = await ns.search('nic');
 ```
+
+See an example in the [./samples directory](./samples/src).
 
 ## Requirements
 
@@ -141,8 +135,8 @@ Nickel Search is a node.js app that converts a set of documents into a prefix-qu
 TODO:
 
 * Deallocate stack after indexing done, keeping the source and target S3 buckets:
-    * Move the S3 buckets definition to a different stack, and reference them from the current stack
-    * Or delete money-consuming objects from the created stack
+  * Move the S3 buckets definition to a different stack, and reference them from the current stack
+  * Or delete money-consuming objects from the created stack
 * Add storage to Docker container before indexing starts
 * Remove storage from Docker container when indexing finishes.
 * Create a project directory for fabu.
