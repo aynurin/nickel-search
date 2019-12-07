@@ -4,6 +4,8 @@ import IndexRecord from "./common/IndexRecord";
 import ISearchable from "./common/ISearchable";
 import IWordTokenizer from "./common/IWordTokenizer";
 
+import SimpleTokenizer from "./components/SimpleTokenizer";
+
 import IIndexerOptions from "./index/IIndexerOptions";
 import BasePrefixBuffer from "./index/PrefixBuffer";
 import SearchTransform from "./index/SearchTransform";
@@ -144,4 +146,4 @@ export default class NickelIndex<TDoc> {
 //     return `${title} ${(Math.round(val / 1024 / 1024 * 100) / 100)} MB`.padEnd(8 + title.length, " ");
 // }
 
-export { IDataStore, IIndexerOptions, ISearchable, IIndexPage };
+export { IDataStore, IIndexerOptions, ISearchable, IIndexPage, SimpleTokenizer };

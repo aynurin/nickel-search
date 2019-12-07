@@ -2,7 +2,9 @@ import IDataStore from "./common/IDataStore";
 import IIndexPage from "./common/IIndexPage";
 import IndexRecord from "./common/IndexRecord";
 import IWordTokenizer from "./common/IWordTokenizer";
+
 import EntryNotFoundError from "./EntryNotFoundError";
+import { SimpleTokenizer } from "./NickelIndex";
 
 /** Usage example: see /samples/src/search.ts
  */
@@ -65,4 +67,4 @@ export default class NickelSearch {
     }
 }
 
-export { IDataStore, IIndexPage };
+export { IDataStore, IIndexPage, SimpleTokenizer };
