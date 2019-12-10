@@ -17,14 +17,10 @@ export default class S3Store<TDoc> implements IDataStore<TDoc> {
         if (match && match.groups) {
             const bucket = match.groups.bucket;
             if (typeof bucket === "string" && bucket.length > 0) {
-                if (typeof options.credentials !== "undefined" && options.credentials instanceof AWS.Credentials) {
-                    return {
-                        bucket,
-                        credentials: options.credentials as AWS.Credentials,
-                    };
-                } else {
-                    return { bucket };
-                }
+                return {
+                    bucket,
+                    credentials: options.credentials as AWS.Credentials,
+                };
             }
         }
         return null;

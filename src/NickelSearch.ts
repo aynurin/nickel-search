@@ -47,16 +47,13 @@ export default class NickelSearch {
     }
 
     public async getPage(pageKey: string): Promise<IIndexPage | null> {
-
-        const hrstart = process.hrtime();
+        const mark = time();
         try {
             const result = await this.source.readItem(pageKey);
-            const hrend = process.hrtime(hrstart);
-            console.debug(`Retrieving key ${pageKey} took: ${hrend[0]}s ${hrend[1] / 1000000}ms`);
+            console.debug(`Retrieving key ${pageKey} took: ${toMSString(time(mark))}s`);
             return result;
         } catch (e) {
-            const hrend = process.hrtime(hrstart);
-            console.debug(`Retrieving key ${pageKey} took: ${hrend[0]}s ${hrend[1] / 1000000}ms`);
+            console.debug(`Retrieving key ${pageKey} took: ${toMSString(time(mark))}s`);
             if (e instanceof EntryNotFoundError) {
                 console.warn(`Key not found: ${pageKey}`);
                 return null;
@@ -64,6 +61,19 @@ export default class NickelSearch {
                 throw e;
             }
         }
+    }
+}
+
+function toMSString(val: Date) {
+    return val.getSeconds() + val.getMilliseconds() / 1000;
+}
+
+function time(baseTime?: Date) {
+    const currentDate = new Date();
+    if (baseTime) {
+        return new Date(currentDate.valueOf() - baseTime.valueOf());
+    } else {
+        return currentDate;
     }
 }
 
